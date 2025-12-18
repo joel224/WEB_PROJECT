@@ -4,83 +4,79 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import gsap from 'gsap';
 
-const AnimatedTitle = () => {
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const text = 'JOEL JOSHY';
-  const glowColor = '#00E0C6';
+const ShimmerTitle = () => {
+  const containerRef = useRef<HTMLHeadingElement>(null);
+  const text = "JOEL JOSHY";
+  
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
 
-  const runGsapAnimation = () => {
-    if (!titleRef.current) return;
+    // Grab all characters and specifically the last two
+    const allChars = containerRef.current.querySelectorAll('.char');
+    const lastTwo = Array.from(allChars).slice(-2);
 
     const ctx = gsap.context(() => {
-      const chars = gsap.utils.toArray<HTMLElement>('.char');
-      
-      if (chars.length === 0) return;
+      const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.5 });
 
-      const tl = gsap.timeline({ repeat: -1, repeatDelay: 2 });
-
-      tl.fromTo(
-        chars,
-        {
-          textShadow: `0 0 0px ${glowColor}, 0 0 0px ${glowColor}`,
-          color: 'hsl(var(--primary))',
+      // 1. Initial Sweep across the whole name
+      tl.fromTo(allChars, 
+        { 
+          backgroundImage: "linear-gradient(110deg, transparent 40%, #fff 50%, transparent 60%)",
+          backgroundSize: "200% 100%",
+          backgroundPosition: "200% 0%",
+          webkitBackgroundClip: "text",
+          color: "rgba(255,255,255,0.3)", // Base dimmed color
         },
         {
-          duration: 0.6,
-          textShadow: `0 0 15px ${glowColor}, 0 0 25px ${glowColor}`,
-          color: '#fff',
-          stagger: {
-            from: 'start',
-            each: 0.1,
-          },
+          backgroundPosition: "-100% 0%",
+          duration: 1.5,
+          ease: "power2.inOut",
+          stagger: 0.05
         }
-      ).to(chars, {
-        duration: 0.6,
-        textShadow: `0 0 0px ${glowColor}, 0 0 0px ${glowColor}`,
-        color: 'hsl(var(--primary))',
-        stagger: {
-          from: 'start',
-          each: 0.1,
-        },
-      }, '-=0.4');
-      
-      const lastTwoChars = chars.slice(-2);
-      tl.to(lastTwoChars, {
-        duration: 0.8,
-        textShadow: `0 0 15px ${glowColor}, 0 0 25px ${glowColor}`,
-        color: '#fff',
-        ease: 'power2.inOut',
-      }, '+=0.5')
-      .to(lastTwoChars, {
-        duration: 1.2,
-        textShadow: `0 0 8px ${glowColor}, 0 0 15px ${glowColor}`,
-        color: '#fff',
-        ease: 'power2.inOut',
-        yoyo: true,
-        repeat: 1
-      });
+      );
 
-    }, titleRef);
+      // 2. Focused shimmer on "HY"
+      tl.to(lastTwo, {
+        color: "#fff",
+        textShadow: "0 0 20px rgba(0, 224, 198, 0.8), 0 0 30px rgba(0, 224, 198, 0.4)",
+        duration: 0.4,
+        yoyo: true,
+        repeat: 3, // Rapid blink/shimmer effect
+        ease: "sine.inOut"
+      }, "-=0.2");
+
+    }, containerRef);
 
     return () => ctx.revert();
-  };
+  }, []);
 
   return (
-    <motion.h1
-      ref={titleRef}
-      className="text-7xl md:text-9xl font-bold uppercase tracking-tighter text-primary"
-      initial={{ letterSpacing: '-0.05em', opacity: 0 }}
-      animate={{ letterSpacing: '0.02em', opacity: 1 }}
-      transition={{ duration: 1.5, ease: [0.25, 1, 0.5, 1] }}
-      onAnimationComplete={runGsapAnimation}
-    >
-      {text.split('').map((char, index) => (
-        <span key={index} className="char inline-block">
-          {char === ' ' ? '\u00A0' : char}
-        </span>
-      ))}
-    </motion.h1>
+    <div className="flex items-center justify-center min-h-[200px] bg-black">
+      <motion.h1
+        ref={containerRef}
+        className="text-6xl md:text-8xl font-black tracking-tighter uppercase flex flex-wrap justify-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1 }}
+      >
+        {text.split("").map((char, i) => (
+          <span
+            key={i}
+            className="char inline-block relative bg-no-repeat transition-colors duration-300"
+            style={{ 
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundImage: "linear-gradient(110deg, transparent 40%, #fff 50%, transparent 60%)",
+              backgroundSize: "200% 100%",
+              backgroundPosition: "200% 0%",
+            }}
+          >
+            {char === " " ? "\u00A0" : char}
+          </span>
+        ))}
+      </motion.h1>
+    </div>
   );
 };
 
-export default AnimatedTitle;
+export default ShimmerTitle;
