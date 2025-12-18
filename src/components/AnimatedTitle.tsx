@@ -9,16 +9,16 @@ const AnimatedTitle = () => {
   const text = 'JOEL JOSHY';
   const glowColor = '#00E0C6';
 
-  useLayoutEffect(() => {
+  const runGsapAnimation = () => {
     if (!titleRef.current) return;
 
-    const chars = Array.from(titleRef.current.querySelectorAll('.char'));
-    if (chars.length === 0) return;
-
     const ctx = gsap.context(() => {
+      const chars = gsap.utils.toArray<HTMLElement>('.char');
+      
+      if (chars.length === 0) return;
+
       const tl = gsap.timeline({ repeat: -1, repeatDelay: 2 });
 
-      // Traveling highlight
       tl.fromTo(
         chars,
         {
@@ -44,7 +44,6 @@ const AnimatedTitle = () => {
         },
       }, '-=0.4');
       
-      // Linger on 'HY'
       const lastTwoChars = chars.slice(-2);
       tl.to(lastTwoChars, {
         duration: 0.8,
@@ -64,7 +63,7 @@ const AnimatedTitle = () => {
     }, titleRef);
 
     return () => ctx.revert();
-  }, [text]);
+  };
 
   return (
     <motion.h1
@@ -73,6 +72,7 @@ const AnimatedTitle = () => {
       initial={{ letterSpacing: '-0.05em', opacity: 0 }}
       animate={{ letterSpacing: '0.02em', opacity: 1 }}
       transition={{ duration: 1.5, ease: [0.25, 1, 0.5, 1] }}
+      onAnimationComplete={runGsapAnimation}
     >
       {text.split('').map((char, index) => (
         <span key={index} className="char inline-block">
