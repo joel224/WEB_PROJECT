@@ -64,7 +64,7 @@ const AnimatedTitle = () => {
     }, titleRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [text]);
 
   return (
     <motion.h1
