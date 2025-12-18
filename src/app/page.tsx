@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Header from '@/components/Header';
 import { Card, CardContent } from '@/components/ui/card';
+import AnimatedTitle from '@/components/AnimatedTitle';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -40,9 +41,7 @@ export default function Home() {
       <Header />
       <main className="pt-24 px-4 md:px-8">
         <section className="min-h-[60vh] flex flex-col items-center justify-center text-center">
-        <h1 className="text-7xl md:text-9xl font-bold uppercase tracking-tighter text-primary">
-            joel joshy
-          </h1>
+          <AnimatedTitle />
           <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-3xl">
             A creative developer passionate about crafting beautiful and interactive digital experiences.
           </p>
