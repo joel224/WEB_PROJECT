@@ -1,43 +1,18 @@
 'use client';
 
-import React, { useRef, useLayoutEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Header from '@/components/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import AnimatedTitle from '@/components/AnimatedTitle';
 
-gsap.registerPlugin(ScrollTrigger);
-
 const projects = PlaceHolderImages;
 
 export default function Home() {
-  const container = useRef(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
-
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.from(titleRef.current, {
-        scrollTrigger: {
-          trigger: titleRef.current,
-          start: 'top 80%',
-          end: 'bottom 20%',
-          scrub: 1,
-        },
-        y: 100,
-        opacity: 0,
-        stagger: 0.1,
-      });
-    }, container);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
-    <div ref={container} className="bg-background text-foreground">
+    <div className="bg-background text-foreground">
       <Header />
       <main className="pt-24 px-4 md:px-8">
         <section className="min-h-[60vh] flex flex-col items-center justify-center text-center">
@@ -47,7 +22,7 @@ export default function Home() {
           </p>
         </section>
 
-        <section ref={titleRef} className="py-20">
+        <section className="py-20">
           <h2 className="text-5xl md:text-7xl font-bold text-center mb-16">
             Featured Work
           </h2>
@@ -75,7 +50,7 @@ export default function Home() {
                     <motion.div
                       variants={{
                         initial: { scale: 1, filter: 'blur(0px)' },
-                        hover: { scale: 1.05, filter: 'blur(20px)' },
+                        hover: { scale: 1.05, filter: 'blur(4px)' },
                       }}
                       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                     >
