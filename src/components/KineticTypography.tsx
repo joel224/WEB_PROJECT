@@ -23,33 +23,42 @@ const KineticTypography = () => {
         scrollTrigger: {
           trigger: containerRef.current,
           start: 'top top',
-          end: '+=500%', // 5 phrases, 100% per phrase
+          end: '+=400%', // 4 transitions
           scrub: true,
           pin: true,
         },
       });
 
+      // Animate in the first phrase
+      tl.from(textRefs.current[0], {
+        y: '100%',
+        opacity: 0,
+        ease: 'power2.out',
+      });
+      tl.to(textRefs.current[0], {
+        opacity: 1, // Hold it for a bit
+      }, '+=0.5');
+
       textRefs.current.forEach((text, i) => {
-        if (!text) return;
-        // Animation to bring the text in
-        tl.from(text, {
-            y: '100%', // Start from below the container
+        if (i > 0) {
+          // Animate out the previous phrase
+          tl.to(textRefs.current[i - 1], {
+            y: '-100%',
+            opacity: 0,
+            ease: 'power2.in',
+          });
+          
+          // Animate in the current phrase
+          tl.from(text, {
+            y: '100%',
             opacity: 0,
             ease: 'power2.out',
-        }, i * 0.5); // Stagger the start time
+          }, "-=0.5"); // Overlap start of next animation
 
-        // Animation to move the text out
-        if (i < phrases.length - 1) {
-            tl.to(text, {
-                y: '-100%', // Move up out of the container
-                opacity: 0,
-                ease: 'power2.in',
-            }, (i * 0.5) + 0.4); // Stagger the end time
-        } else {
-             // Last phrase stays longer
-             tl.to(text, {
-                opacity: 1,
-            }, (i * 0.5) + 0.4);
+          // Hold the current phrase
+          tl.to(text, {
+            opacity: 1,
+          }, '+=0.5');
         }
       });
     }, containerRef);
