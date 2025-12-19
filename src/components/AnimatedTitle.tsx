@@ -41,7 +41,7 @@ const ShimmerTitle = () => {
         textShadow: "0 0 20px rgba(0, 224, 198, 0.8), 0 0 30px rgba(0, 224, 198, 0.4)",
         duration: 0.4,
         yoyo: true,
-        repeat: 3, // Rapid blink/shimmer effect
+        repeat: 1, // Rapid blink/shimmer effect
         ease: "sine.inOut"
       }, "-=0.2");
 
@@ -51,7 +51,9 @@ const ShimmerTitle = () => {
   }, []);
 
   return (
+    
     <div className="flex items-center justify-center min-h-[200px] bg-black">
+     
       <motion.h1
         ref={containerRef}
         className="text-6xl md:text-8xl font-black tracking-tighter uppercase flex flex-wrap justify-center"

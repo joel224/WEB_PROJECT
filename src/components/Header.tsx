@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
+import Link from 'next/link';
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -30,10 +31,10 @@ export default function Header() {
           whileTap={{ scale: 0.95 }}
           className="text-2xl font-bold tracking-tighter text-primary"
         >
-          JJ
+          <Link href="/">JJ</Link>
         </motion.div>
         <nav className="hidden md:flex items-center gap-6 text-lg font-medium">
-          <motion.a href="#work" whileHover={{ y: -2 }} className="hover:text-primary transition-colors">Work</motion.a>
+          <motion.a href="/work" whileHover={{ y: -2 }} className="hover:text-primary transition-colors">Work</motion.a>
           <motion.a href="#about" whileHover={{ y: -2 }} className="hover:text-primary transition-colors">About</motion.a>
           <motion.a href="#contact" whileHover={{ y: -2 }} className="hover:text-primary transition-colors">Contact</motion.a>
         </nav>

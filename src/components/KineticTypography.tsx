@@ -67,6 +67,7 @@ const KineticTypography = () => {
 
   return (
     <section ref={containerRef} className="h-screen w-full relative">
+      
       <div className="absolute inset-0 bg-background flex items-center justify-center overflow-hidden">
         {phrases.map((phrase, i) => (
           <h2
