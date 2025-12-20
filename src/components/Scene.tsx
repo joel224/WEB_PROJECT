@@ -1,11 +1,11 @@
 'use client';
 
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, type ThreeElements } from '@react-three/fiber';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useRef, type RefObject, MutableRefObject } from 'react';
-import type { Group, Mesh } from 'three';
+import type { Group, Mesh, Viewport } from 'three';
 import { Perf } from 'r3f-perf';
 
 import { cubesData, type CubeData } from '@/lib/cube-data';
@@ -21,15 +21,13 @@ type AnimatedCubesProps = {
   contextSafe: (fn: Function) => Function;
 };
 
-function usePixelToThree(x: number, y: number) {
-  const { viewport } = useThree();
+function pixelToThree(x: number, y: number, viewport: Viewport) {
   const threeX = (x / DESIGN_WIDTH) * viewport.width - viewport.width / 2;
   const threeY = -((y / DESIGN_HEIGHT) * viewport.height - viewport.height / 2);
   return { x: threeX, y: threeY };
 }
 
-function calculateScale(pixelWidth: number) {
-  const { viewport } = useThree();
+function calculateScale(pixelWidth: number, viewport: Viewport) {
   return (pixelWidth / DESIGN_WIDTH) * viewport.width;
 }
 
@@ -62,12 +60,12 @@ const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
       const cubeRef = cubeRefs.current[index];
       if (!cubeRef) return;
 
-      const startPos = usePixelToThree(cube.start.x, cube.start.y);
-      const startScale = calculateScale(cube.start.w);
+      const startPos = pixelToThree(cube.start.x, cube.start.y, viewport);
+      const startScale = calculateScale(cube.start.w, viewport);
       const startRotationRad = (cube.start.rotation * Math.PI) / 180;
 
-      const endPos = usePixelToThree(cube.end.x, cube.end.y);
-      const endScale = calculateScale(cube.end.w);
+      const endPos = pixelToThree(cube.end.x, cube.end.y, viewport);
+      const endScale = calculateScale(cube.end.w, viewport);
       const endRotationRad = (cube.end.rotation * Math.PI) / 180;
 
       // Set initial state
@@ -128,10 +126,15 @@ const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
     });
   });
 
-  useGSAP(() => {
-    // We call the animation function once the viewport is ready
-    animate();
-  }, { dependencies: [viewport, animate] });
+  useGSAP(
+    () => {
+      // We call the animation function once the viewport is ready
+      if(viewport.width > 0) {
+        animate();
+      }
+    },
+    { dependencies: [viewport, animate] }
+  );
 
   return (
     <>
@@ -149,9 +152,9 @@ const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
 };
 
 type SceneProps = {
-    cubeRefs: MutableRefObject<(Mesh | null)[]>;
-    contextSafe: (fn: Function) => Function;
-}
+  cubeRefs: MutableRefObject<(Mesh | null)[]>;
+  contextSafe: (fn: Function) => Function;
+};
 
 export default function Scene({ cubeRefs, contextSafe }: SceneProps) {
   return (
