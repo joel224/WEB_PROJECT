@@ -6,7 +6,7 @@ import gsap from 'gsap';
 
 const ShimmerText = () => {
   const containerRef = useRef<HTMLHeadingElement>(null);
-  const text = "Digital First generation";
+  const text = " generation";
   
   useLayoutEffect(() => {
     if (!containerRef.current) return;
