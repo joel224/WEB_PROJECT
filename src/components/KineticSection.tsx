@@ -161,36 +161,35 @@ export default function KineticSection() {
       ref={containerRef} 
       className="relative w-full h-[500vh] bg-[#2B1C13]"
     >
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col justify-center items-center">
+      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col items-center">
         
         {/* --- LAYER 1: VIDEO --- */}
         <div className="absolute inset-0 z-0 bg-black">
             <video
                 ref={videoRef}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-bottom"
                 muted
                 playsInline
                 preload="auto"
                 src="/output.mp4" 
             />
-            {/* Dark Overlay (z-10) */}
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10" />
+            
+            {/* Dark Overlay with SUBTLE blur */}
+            {/* Changed from backdrop-blur-sm to backdrop-blur-[2px] */}
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-10" />
         </div>
 
-        {/* --- LAYER 1.5: LIGHT GLOW (Added) --- */}
-        {/* z-[15] places it ABOVE the dark overlay but BELOW leaves/text */}
-        <div className="absolute inset-0 z-[15] pointer-events-none flex items-center justify-center">
+        {/* --- LAYER 1.5: LIGHT GLOW --- */}
+        {/* Moved UP (top-[10%]) to sit behind the new text position */}
+        <div className="absolute top-[10%] z-[15] pointer-events-none flex items-center justify-center">
             <div 
                 className="
-                    w-[300px] h-[500px] md:w-[500px] md:h-[800px] 
-                    bg-white/40 
+                    w-[300px] h-[300px] md:w-[600px] md:h-[400px] 
+                    bg-white/20 
                     rounded-[50%] 
-                    blur-[80px] md:blur-[120px] 
-                    rotate-90
-                    opacity: 0.5
+                    blur-[100px] 
+                    opacity-60
                 "
-                
-                // Removed mix-blend-mode to ensure visibility
             />
         </div>
 
@@ -211,7 +210,8 @@ export default function KineticSection() {
         </div>
 
         {/* --- LAYER 3: TEXT --- */}
-        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+        {/* Positioned explicitly at top-[15%] to match 'MOJITO' placement */}
+        <div className="absolute top-[15%] w-full z-30 flex justify-center pointer-events-none">
           {phrases.map((phraseObj, i) => {
             const isActive = i === activeIndex;
 
@@ -224,8 +224,8 @@ export default function KineticSection() {
                   ${isActive 
                       ? 'opacity-100 blur-0 scale-100 translate-y-0' 
                       : i < activeIndex
-                          ? 'opacity-0 blur-xl scale-110 -translate-y-20' 
-                          : 'opacity-0 blur-xl scale-90 translate-y-20'
+                          ? 'opacity-0 blur-xl scale-110 -translate-y-10' // Reduced movement distance
+                          : 'opacity-0 blur-xl scale-90 translate-y-10'
                   }
                 `}
               >
