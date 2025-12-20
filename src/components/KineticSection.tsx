@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -15,92 +15,122 @@ const phrases = [
 ];
 
 export default function KineticSection() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLElement>(null);
   const textRefs = useRef<(HTMLHeadingElement | null)[]>([]);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoReady, setVideoReady] = useState(false);
 
   useLayoutEffect(() => {
+    if (!videoReady && videoRef.current && !videoRef.current.duration) return;
+
     const ctx = gsap.context(() => {
+      // FIX: We trigger on the tall containerRef
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
           start: 'top top',
-          end: `+=${phrases.length * 100}%`,
-          scrub: 1,
-          pin: true,
+          end: 'bottom bottom', // Scroll for the entire height of the container
+          scrub: 1, 
+          // REMOVED: pin: true (CSS Sticky handles this now)
         },
       });
 
-      // --- INITIAL SETUP ---
+      // --- 1. VIDEO SCRUBBING ---
+      const video = videoRef.current;
+      if (video && video.duration) {
+        tl.fromTo(
+          video,
+          { currentTime: 0 },
+          { currentTime: video.duration, ease: "none" },
+          0
+        );
+      }
+
+      // --- 2. TEXT ANIMATION ---
       textRefs.current.forEach((text) => {
         if (text) {
              gsap.set(text, { 
-                 y: '120%', 
+                 y: '100%', 
                  opacity: 0, 
-                 rotateX: -45, 
-                 scale: 0.8,
-                 filter: 'blur(10px)',
+                 scale: 0.9,
+                 filter: 'blur(8px)',
                  transformOrigin: "center center"
              });
         }
       });
 
-      // --- ANIMATION LOOP ---
       phrases.forEach((_, i) => {
         const text = textRefs.current[i];
         if (!text) return;
+        
+        // Spread animations across the timeline
+        const startTime = (i / phrases.length) * (video?.duration || 1);
 
-        // 1. ENTER
         tl.to(text, {
           y: '0%',
           opacity: 1,
-          rotateX: 0,
           scale: 1,
           filter: 'blur(0px)',
-          duration: 1,
-          ease: 'power4.out',
-        });
+          duration: 0.5, 
+          ease: 'power3.out',
+        }, startTime); 
 
-        // 2. HOLD
-        tl.to(text, {
-          scale: 1.05,
-          duration: 0.5,
-          ease: 'none'
-        });
-
-        // 3. EXIT
         if (i < phrases.length - 1) {
+            const exitTime = ((i + 1) / phrases.length) * (video?.duration || 1) - 0.2;
             tl.to(text, {
-                y: '-120%',
+                y: '-100%',
                 opacity: 0,
-                rotateX: 45,
-                scale: 1.2,
-                filter: 'blur(10px)',
-                duration: 0.8,
-                ease: 'power2.in',
-            }, ">-0.2");
+                scale: 1.1,
+                filter: 'blur(8px)',
+                duration: 0.5,
+                ease: 'power3.in',
+            }, exitTime); 
         }
       });
 
     }, containerRef);
     
     return () => ctx.revert();
-  }, []);
+  }, [videoReady]); 
 
   return (
-    <section ref={containerRef} className="h-screen w-full relative overflow-hidden perspective-1000 bg-[#2B1C13]">
-      <div className="absolute inset-0 flex items-center justify-center">
-        {phrases.map((phrase, i) => (
-          <h1
-            key={i}
-            ref={(el) => (textRefs.current[i] = el)}
-            className="absolute text-6xl md:text-9xl font-serif font-bold text-center leading-tight tracking-tight uppercase text-[#FFE9D9]"
-            style={{ 
-                willChange: "transform, opacity, filter",
-            }} 
-          >
-            {phrase}
-          </h1>
-        ))}
+    // FIX: Outer container is 400vh tall (creating physical scroll space)
+    <section 
+      ref={containerRef} 
+      className="relative w-full h-[400vh] bg-[#2B1C13]" 
+    >
+      {/* FIX: Inner container sticks to the screen while you scroll through the 400vh */}
+      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col justify-center items-center z-30">
+        
+        {/* --- BACKGROUND VIDEO --- */}
+        <div className="absolute inset-0 z-0">
+            <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                muted
+                playsInline
+                preload="auto"
+                src="/Minimal_Background_Video_Generation.mp4"
+                onLoadedMetadata={() => setVideoReady(true)}
+            />
+            {/* Dark Overlay */}
+            <div className="absolute inset-0 bg-black/60 z-10" />
+        </div>
+
+        {/* --- TEXT CONTENT --- */}
+        <div className="absolute inset-0 z-20 flex items-center justify-center perspective-1000">
+          {phrases.map((phrase, i) => (
+            <h2
+              key={i}
+              ref={(el) => { if (el) textRefs.current[i] = el; }}
+              className="absolute text-5xl md:text-8xl font-serif font-bold text-center leading-tight tracking-tight uppercase px-4 drop-shadow-2xl text-[#FFE9D9]"
+              style={{ willChange: "transform, opacity, filter" }} 
+            >
+              {phrase}
+            </h2>
+          ))}
+        </div>
+
       </div>
     </section>
   );

@@ -18,14 +18,14 @@ export default function Home() {
   return (
     <main className="relative w-full bg-[#2B1C13] text-[#FFE9D9] font-sans">
       
-      {/* 3D SCENE (Fixed) */}
+      {/* 3D SCENE */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Scene cubeRefs={cubeRefs} />
       </div>
 
       <div className="scroller relative z-10 w-full">
         
-        {/* --- PAGE 1: Intro --- */}
+        {/* PAGE 1 */}
         <div className="h-[200vh] relative">
             <div className="absolute left-1/2 top-[30vh] -translate-x-1/2 -translate-y-1/2 opacity-0 pointer-events-none z-0">
                 <FigmaLogo />
@@ -44,24 +44,29 @@ export default function Home() {
             </div>
         </div>
 
-        {/* --- PAGE 2: Ring (STICKY TARGET) --- */}
-        {/* The 3D cubes will now move UP along with this section as you scroll past it */}
+        {/* PAGE 2 */}
         <section id="target-section" className="h-screen w-full flex items-center justify-center relative z-20">
            <div className="center-text opacity-0 blur-md text-center max-w-[600px] px-6">
               <h2 className="text-2xl md:text-4xl font-bold tracking-wide mb-6 text-[#FFE9D9]">
                  Where innovation meets precision.
               </h2>
               <p className="text-sm md:text-lg text-[#FFE9D9]/80 leading-relaxed font-sans">
-                 Symphonia unites visionary thinkers, creative architects, and analytical
-                 experts, collaborating seamlessly to transform challenges into
-                 opportunities.
+                 Symphonia unites visionary thinkers...
               </p>
            </div>
         </section>
 
-        {/* --- PAGE 3: Finale --- */}
+        {/* PAGE 3: KINETIC VIDEO */}
         <KineticSection />
         
+        {/* FIX: SCROLL SPACER / FOOTER
+           This invisible div ensures you can scroll "past" the pinned video section,
+           allowing the video scrubbing to finish completely. 
+        */}
+        <div className="h-[50vh] w-full bg-[#2B1C13] relative z-20 flex items-center justify-center text-white/20 text-sm">
+           (End of Page)
+        </div>
+
       </div>
     </main>
   );

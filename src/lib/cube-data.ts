@@ -27,7 +27,7 @@ export const cubesData: CubeData[] = [
     image: '/images/cube1.png', 
     startOffset: { ...getPos(0, 61, 36, 35), rotationZ: 0 },
     end: { x: 1920/2 - 280, y: 1200/2 - 350, w: 200, rotation: 0 },
-    endMobile: { x: -180, y: -300, w: 160, rotation: 10 },
+    endMobile: { x: -180, y: -300, w: 120, rotation: 10 },
   },
 
   // --- CUBE 2 (Top Right) ---
@@ -36,7 +36,7 @@ export const cubesData: CubeData[] = [
     image: '/images/cube2.png', 
     startOffset: { ...getPos(59, 61, 36, 35), rotationZ: 0 },
     end: { x: 1920/2 + 280, y: 1200/2 - 350, w: 200, rotation: 0 },
-    endMobile: { x: 180, y: -300, w: 160, rotation: -10 },
+    endMobile: { x: 180, y: -300, w: 120, rotation: -10 },
   },
 
   // --- CUBE 3 (Mid Left - HIDDEN ON MOBILE) ---
@@ -66,7 +66,7 @@ export const cubesData: CubeData[] = [
     image: '/images/cube5.png', 
     startOffset: { ...getPos(59, 0, 36, 35), rotationZ: 0 },
     end: { x: 1920/2 - 280, y: 1200/2 + 350, w: 200, rotation: 0 },
-    endMobile: { x: -180, y: 300, w: 160, rotation: -10 },
+    endMobile: { x: -180, y: 300, w: 120, rotation: -10 },
   },
 
   // --- CUBE 6 (Bottom Right) ---
@@ -75,6 +75,6 @@ export const cubesData: CubeData[] = [
     image: '/images/cube6.png', 
     startOffset: { ...getPos(120.7, 11, 36, 35), rotationZ: -47.43 },
     end: { x: 1920/2 + 280, y: 1200/2 + 350, w: 200, rotation: 0 },
-    endMobile: { x: 180, y: 300, w: 160, rotation: 10 },
+    endMobile: { x: 180, y: 300, w: 120, rotation: 10 },
   },
 ];
