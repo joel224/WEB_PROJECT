@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react'; // Ensure you have installed: npm i @gsap/react
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,115 +19,113 @@ export default function KineticSection() {
   const containerRef = useRef<HTMLElement>(null);
   const textRefs = useRef<(HTMLHeadingElement | null)[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
-  
-  // Track readiness
-  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [videoDuration, setVideoDuration] = useState<number>(0);
 
-  useLayoutEffect(() => {
-    // Safety check: ensure video ref exists
-    if (!videoRef.current) return;
-    
-    // If video isn't marked ready yet, we wait. 
-    // BUT we also check if 'duration' is already available (cached) to avoid getting stuck.
-    if (!isVideoReady && !videoRef.current.duration) return;
+  // --- MAIN ANIMATION LOGIC ---
+  // We use useGSAP instead of useLayoutEffect for better React 18/Next.js compatibility
+  useGSAP(() => {
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: containerRef.current,
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: 0.5, // Smooth scrubbing
+        invalidateOnRefresh: true, // Recalculate on resize
+      },
+    });
 
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: 'top top',
-          end: 'bottom bottom', 
-          scrub: 0.1, // Lower scrub for more responsive video scrubbing
-        },
-      });
-
-      // --- 1. VIDEO SCRUB ---
-      const vid = videoRef.current;
-      
-      if (vid) {
-          // DEBUG: Check if we are grabbing the video correctly
-          console.log("GSAP Video Init:", vid.duration);
-
-          // FALLBACK: If browser reports Infinity/NaN, assume 10s duration so it still works
-          const safeDuration = (Number.isFinite(vid.duration) && vid.duration > 0) 
-            ? vid.duration 
-            : 10;
-
-          vid.pause(); // Force pause
-          
-          tl.fromTo(vid, 
+    // 1. VIDEO ANIMATION
+    const vid = videoRef.current;
+    if (vid) {
+        // Pause immediately so scroll can take over
+        vid.pause();
+        
+        // Use the state duration or fallback to 10s if metadata failed
+        const duration = videoDuration || 10;
+        
+        tl.fromTo(vid, 
             { currentTime: 0 }, 
-            { currentTime: safeDuration, ease: "none" }, 
+            { currentTime: duration, ease: "none" }, 
             0
-          );
-      }
+        );
+    }
 
-      // --- 2. TEXT ANIMATION ---
-      const step = 1 / phrases.length;
+    // 2. TEXT ANIMATION
+    const step = 1 / phrases.length;
+    
+    phrases.forEach((_, i) => {
+      const text = textRefs.current[i];
+      if (!text) return;
 
-      phrases.forEach((_, i) => {
-        const text = textRefs.current[i];
-        if (!text) return;
+      const startTime = i * step;
 
-        const startTime = i * step;
-
-        // Reset
-        gsap.set(text, { 
-             y: '100%', 
-             opacity: 0, 
-             scale: 0.9,
-             filter: 'blur(10px)',
-        });
-
-        // Enter
-        tl.to(text, {
-          y: '0%',
-          opacity: 1,
-          scale: 1,
-          filter: 'blur(0px)',
-          duration: step * 0.4, 
-          ease: 'power3.out',
-        }, startTime); 
-
-        // Exit
-        if (i < phrases.length - 1) {
-            tl.to(text, {
-                y: '-100%',
-                opacity: 0,
-                scale: 1.1,
-                filter: 'blur(10px)',
-                duration: step * 0.4,
-                ease: 'power3.in',
-            }, startTime + (step * 0.6)); 
-        }
+      // Reset CSS to ensure they are hidden but ready
+      gsap.set(text, { 
+           y: '100%', 
+           opacity: 0, 
+           scale: 0.9, 
+           filter: 'blur(10px)',
       });
 
-    }, containerRef);
-    
-    return () => ctx.revert();
-  }, [isVideoReady]); // Re-run when video says it's ready
+      // Enter
+      tl.to(text, {
+        y: '0%', opacity: 1, scale: 1, filter: 'blur(0px)',
+        duration: step * 0.4, ease: 'power3.out',
+      }, startTime); 
+
+      // Exit
+      if (i < phrases.length - 1) {
+          tl.to(text, {
+              y: '-100%', opacity: 0, scale: 1.1, filter: 'blur(10px)',
+              duration: step * 0.4, ease: 'power3.in',
+          }, startTime + (step * 0.6)); 
+      }
+    });
+
+  }, { 
+      scope: containerRef, 
+      dependencies: [videoDuration] // Re-build timeline when video loads
+  });
+
+
+  // --- LAYOUT CORRECTION ---
+  // This fixes the "Forceful Scroll" issue by refreshing triggers 
+  // after the page has had time to load fully.
+  useGSAP(() => {
+    // Refresh immediately
+    ScrollTrigger.refresh();
+
+    // And refresh again after 500ms and 1s to catch any 3D scene layout shifts
+    const timer1 = setTimeout(() => ScrollTrigger.refresh(), 500);
+    const timer2 = setTimeout(() => ScrollTrigger.refresh(), 1000);
+
+    return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+    };
+  }, []);
+
 
   return (
     <section 
       ref={containerRef} 
+      // 400vh Height guarantees scrolling space
       className="relative w-full h-[400vh] bg-[#2B1C13]"
     >
       <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col justify-center items-center">
         
         {/* VIDEO LAYER */}
-        <div className="absolute inset-0 z-0 bg-black"> 
-          {/* bg-black ensures no white flash if video loads slow */}
+        <div className="absolute inset-0 z-0 bg-black">
             <video
                 ref={videoRef}
                 className="w-full h-full object-cover"
                 muted
                 playsInline
                 preload="auto"
-                // FIX: Path must be in 'public/output.mp4'
                 src="/output.mp4"
-                onLoadedMetadata={() => {
-                    console.log("Video Metadata Loaded");
-                    setIsVideoReady(true);
+                onLoadedMetadata={(e) => {
+                    // Update state with actual duration when ready
+                    setVideoDuration(e.currentTarget.duration);
                 }}
             />
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10" />
