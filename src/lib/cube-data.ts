@@ -26,7 +26,7 @@ export const cubesData: CubeData[] = [
     id: 1, 
     image: '/images/cube1.png', 
     startOffset: { ...getPos(0, 61, 36, 35), rotationZ: 0 },
-    end: { x: 1920/2 - 280, y: 1200/2 - 350, w: 200, rotation: 0 },
+    end: { x: 1920/2 - 280, y: 1200/2 - 375, w: 200, rotation: 0 },
     endMobile: { x: -180, y: -300, w: 120, rotation: 10 },
   },
 
@@ -35,7 +35,7 @@ export const cubesData: CubeData[] = [
     id: 2, 
     image: '/images/cube2.png', 
     startOffset: { ...getPos(59, 61, 36, 35), rotationZ: 0 },
-    end: { x: 1920/2 + 280, y: 1200/2 - 350, w: 200, rotation: 0 },
+    end: { x: 1920/2 + 280, y: 1200/2 - 375, w: 200, rotation: 0 },
     endMobile: { x: 180, y: -300, w: 120, rotation: -10 },
   },
 
@@ -65,7 +65,7 @@ export const cubesData: CubeData[] = [
     id: 5, 
     image: '/images/cube5.png', 
     startOffset: { ...getPos(59, 0, 36, 35), rotationZ: 0 },
-    end: { x: 1920/2 - 280, y: 1200/2 + 350, w: 200, rotation: 0 },
+    end: { x: 1920/2 - 280, y: 1200/2 + 375, w: 200, rotation: 0 },
     endMobile: { x: -180, y: 300, w: 120, rotation: -10 },
   },
 
@@ -74,7 +74,7 @@ export const cubesData: CubeData[] = [
     id: 6, 
     image: '/images/cube6.png', 
     startOffset: { ...getPos(120.7, 11, 36, 35), rotationZ: -47.43 },
-    end: { x: 1920/2 + 280, y: 1200/2 + 350, w: 200, rotation: 0 },
+    end: { x: 1920/2 + 280, y: 1200/2 + 375, w: 200, rotation: 0 },
     endMobile: { x: 180, y: 300, w: 120, rotation: 10 },
   },
 ];
