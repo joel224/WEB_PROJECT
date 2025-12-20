@@ -18,112 +18,115 @@ export default function KineticSection() {
   const containerRef = useRef<HTMLElement>(null);
   const textRefs = useRef<(HTMLHeadingElement | null)[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoReady, setVideoReady] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
 
   useLayoutEffect(() => {
-    if (!videoReady && videoRef.current && !videoRef.current.duration) return;
+    // Wait until video metadata is loaded to ensure we have the correct duration
+    if (!isVideoReady && videoRef.current && !videoRef.current.duration) return;
 
     const ctx = gsap.context(() => {
-      // FIX: We trigger on the tall containerRef
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
           start: 'top top',
-          end: 'bottom bottom', // Scroll for the entire height of the container
-          scrub: 1, 
-          // REMOVED: pin: true (CSS Sticky handles this now)
+          end: 'bottom bottom', 
+          scrub: 0.5, // Slight smoothing (0.5s) for a premium feel
         },
       });
 
-      // --- 1. VIDEO SCRUBBING ---
-      const video = videoRef.current;
-      if (video && video.duration) {
-        tl.fromTo(
-          video,
-          { currentTime: 0 },
-          { currentTime: video.duration, ease: "none" },
+      // --- 1. VIDEO SCRUB (Strict Scroll Control) ---
+      if (videoRef.current) {
+        const vid = videoRef.current;
+        // Force video to pause immediately
+        vid.pause();
+        
+        // Scrub from time 0 to full duration
+        tl.fromTo(vid, 
+          { currentTime: 0 }, 
+          { currentTime: vid.duration || 10, ease: "none" }, 
           0
         );
       }
 
       // --- 2. TEXT ANIMATION ---
-      textRefs.current.forEach((text) => {
-        if (text) {
-             gsap.set(text, { 
-                 y: '100%', 
-                 opacity: 0, 
-                 scale: 0.9,
-                 filter: 'blur(8px)',
-                 transformOrigin: "center center"
-             });
-        }
-      });
+      const step = 1 / phrases.length; // Divide the scroll timeline evenly
 
       phrases.forEach((_, i) => {
         const text = textRefs.current[i];
         if (!text) return;
-        
-        // Spread animations across the timeline
-        const startTime = (i / phrases.length) * (video?.duration || 1);
 
+        const startTime = i * step;
+
+        // Reset state
+        gsap.set(text, { 
+             y: '100%', 
+             opacity: 0, 
+             scale: 0.9,
+             filter: 'blur(10px)',
+        });
+
+        // Enter
         tl.to(text, {
           y: '0%',
           opacity: 1,
           scale: 1,
           filter: 'blur(0px)',
-          duration: 0.5, 
+          duration: step * 0.4, 
           ease: 'power3.out',
         }, startTime); 
 
+        // Exit (except last one)
         if (i < phrases.length - 1) {
-            const exitTime = ((i + 1) / phrases.length) * (video?.duration || 1) - 0.2;
             tl.to(text, {
                 y: '-100%',
                 opacity: 0,
                 scale: 1.1,
-                filter: 'blur(8px)',
-                duration: 0.5,
+                filter: 'blur(10px)',
+                duration: step * 0.4,
                 ease: 'power3.in',
-            }, exitTime); 
+            }, startTime + (step * 0.6)); 
         }
       });
 
     }, containerRef);
     
     return () => ctx.revert();
-  }, [videoReady]); 
+  }, [isVideoReady]); // Re-run once video loads
 
   return (
-    // FIX: Outer container is 400vh tall (creating physical scroll space)
     <section 
       ref={containerRef} 
-      className="relative w-full h-[400vh] bg-[#2B1C13]" 
+      className="relative w-full h-[400vh] bg-[#2B1C13]"
     >
-      {/* FIX: Inner container sticks to the screen while you scroll through the 400vh */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col justify-center items-center z-30">
+      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col justify-center items-center">
         
-        {/* --- BACKGROUND VIDEO --- */}
+        {/* VIDEO LAYER */}
         <div className="absolute inset-0 z-0">
             <video
                 ref={videoRef}
                 className="w-full h-full object-cover"
                 muted
                 playsInline
-                preload="auto"
-                src="/Minimal_Background_Video_Generation.mp4"
-                onLoadedMetadata={() => setVideoReady(true)}
+                // Removed autoPlay and loop. 
+                // onLoadedMetadata signals GSAP that duration is available.
+                onLoadedMetadata={() => setIsVideoReady(true)}
+                src="/output.mp4"
             />
-            {/* Dark Overlay */}
-            <div className="absolute inset-0 bg-black/60 z-10" />
+            
+            {/* FIX: VISIBILITY UPGRADE 
+               1. bg-black/70: Much darker overlay.
+               2. backdrop-blur-sm: Blurs the video slightly to make text pop.
+            */}
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10" />
         </div>
 
-        {/* --- TEXT CONTENT --- */}
-        <div className="absolute inset-0 z-20 flex items-center justify-center perspective-1000">
+        {/* TEXT LAYER */}
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
           {phrases.map((phrase, i) => (
             <h2
               key={i}
               ref={(el) => { if (el) textRefs.current[i] = el; }}
-              className="absolute text-5xl md:text-8xl font-serif font-bold text-center leading-tight tracking-tight uppercase px-4 drop-shadow-2xl text-[#FFE9D9]"
+              className="absolute text-5xl md:text-8xl font-serif font-bold text-center leading-tight tracking-tight uppercase px-4 text-[#FFE9D9] drop-shadow-2xl"
               style={{ willChange: "transform, opacity, filter" }} 
             >
               {phrase}
