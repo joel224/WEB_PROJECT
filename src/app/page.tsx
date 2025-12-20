@@ -8,6 +8,7 @@ import FigmaLogo from '@/components/FigmaLogo';
 import RevealText from '@/components/RevealText'; 
 import KineticSection from '@/components/KineticSection';
 import Footer from '@/components/Footer';
+import Experience from '@/components/Experience';
 
 export default function Home() {
   const cubeRefs = useRef<(Mesh | null)[]>([]);
@@ -96,7 +97,7 @@ and inspire growth.
 
                 {/* PAGE 3: KINETIC VIDEO */}
                 <KineticSection />
-                
+                <Experience />
                 {/* FOOTER */}
                 <Footer />
 
