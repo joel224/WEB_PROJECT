@@ -8,18 +8,29 @@ type HeroCubeProps = {
 };
 
 const HeroCube = forwardRef<Mesh, HeroCubeProps>(({ image }, ref) => {
-  const texture = useTexture(image);
+  // If the image path is wrong, this will suspend indefinitely without Suspense
+  const texture = useTexture(image); 
   const solidColor = '#FFE9D9';
 
   return (
     <mesh ref={ref}>
       <boxGeometry args={[1, 1, 1]} />
+      {/* Material Index Mapping:
+        0: Right (px)
+        1: Left (nx)
+        2: Top (py)
+        3: Bottom (ny)
+        4: Front (pz) - Your texture is here
+        5: Back (nz)
+      */}
       {[...Array(6)].map((_, i) => (
         <meshStandardMaterial
           key={i}
           attach={`material-${i}`}
-          map={i === 4 ? texture : null} // Front face
+          map={i === 4 ? texture : null} 
           color={i === 4 ? 'white' : solidColor}
+          roughness={0.2} // Make it slightly shiny
+          metalness={0.1}
         />
       ))}
     </mesh>
@@ -27,5 +38,4 @@ const HeroCube = forwardRef<Mesh, HeroCubeProps>(({ image }, ref) => {
 });
 
 HeroCube.displayName = 'HeroCube';
-
 export default HeroCube;

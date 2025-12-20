@@ -1,14 +1,14 @@
 'use client';
 
-import { Canvas, useThree, type ThreeElements } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useRef, type RefObject, MutableRefObject } from 'react';
-import type { Group, Mesh, Viewport } from 'three';
-import { Perf } from 'r3f-perf';
+import { MutableRefObject, Suspense } from 'react'; // 1. Import Suspense
+import type { Mesh, Viewport } from 'three';
+import { Preload } from '@react-three/drei'; // 2. Import Preload
 
-import { cubesData, type CubeData } from '@/lib/cube-data';
+import { cubesData } from '@/lib/cube-data';
 import HeroCube from './HeroCube';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -35,8 +35,11 @@ const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
   const { viewport } = useThree();
 
   const animate = contextSafe(() => {
-    if (!cubeRefs.current.length) return;
+    if (!cubeRefs.current.length || !viewport.width) return; // Add viewport check
 
+    // ... (Keep your existing gsap code here exactly as it was) ...
+    // Note: Ensure your .title-overlay class exists in your HTML/page.tsx
+    
     gsap.to('.title-overlay', {
       opacity: 0,
       scrollTrigger: {
@@ -74,70 +77,28 @@ const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
       gsap.set(cubeRef.rotation, { x: 0, y: 0, z: startRotationRad });
 
       // Animation Timeline
-      // 0% - 20%: Explode outwards (Z-axis) and tumble
-      tl.to(
-        cubeRef.position,
-        {
-          z: viewport.width * 0.3, // Explode towards camera
-          duration: 0.2,
-        },
-        0
-      ).to(
-        cubeRef.rotation,
-        {
-          x: Math.random() * Math.PI * 2,
-          y: Math.random() * Math.PI * 2,
-          z: Math.random() * Math.PI * 2,
-          duration: 0.2,
-        },
-        0
-      );
+      tl.to(cubeRef.position, { z: 5, duration: 0.2 }, 0) // Adjusted Z to be closer
+        .to(cubeRef.rotation, { 
+             x: Math.random() * Math.PI * 2, 
+             y: Math.random() * Math.PI * 2, 
+             z: Math.random() * Math.PI * 2, 
+             duration: 0.2 
+        }, 0);
 
-      // 20% - 100%: Settle into grid position
-      tl.to(
-        cubeRef.position,
-        {
-          ...endPos,
-          z: 0,
-          duration: 0.8,
-        },
-        0.2
-      )
-        .to(
-          cubeRef.scale,
-          {
-            x: endScale,
-            y: endScale,
-            z: endScale,
-            duration: 0.8,
-          },
-          0.2
-        )
-        .to(
-          cubeRef.rotation,
-          {
-            x: 0,
-            y: 0,
-            z: endRotationRad,
-            duration: 0.8,
-          },
-          0.2
-        );
+      tl.to(cubeRef.position, { ...endPos, z: 0, duration: 0.8 }, 0.2)
+        .to(cubeRef.scale, { x: endScale, y: endScale, z: endScale, duration: 0.8 }, 0.2)
+        .to(cubeRef.rotation, { x: 0, y: 0, z: endRotationRad, duration: 0.8 }, 0.2);
     });
   });
 
-  useGSAP(
-    () => {
-      // We call the animation function once the viewport is ready
-      if(viewport.width > 0) {
-        animate();
-      }
-    },
-    { dependencies: [viewport, animate] }
-  );
+  useGSAP(() => {
+    if(viewport.width > 0) {
+       animate();
+    }
+  }, { dependencies: [viewport, animate] });
 
   return (
-    <>
+    <group>
       {cubesData.map((cube, i) => (
         <HeroCube
           key={cube.id}
@@ -147,7 +108,7 @@ const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
           }}
         />
       ))}
-    </>
+    </group>
   );
 };
 
@@ -159,13 +120,24 @@ type SceneProps = {
 export default function Scene({ cubeRefs, contextSafe }: SceneProps) {
   return (
     <Canvas
-      camera={{ position: [0, 0, 5], fov: 75 }}
-      style={{ width: '100vw', height: '100vh' }}
+      camera={{ position: [0, 0, 10], fov: 50 }} // Increased Z to see more
+      style={{ 
+        width: '100vw', 
+        height: '100vh',
+        position: 'fixed', // Ensure it stays behind
+        top: 0,
+        left: 0,
+        zIndex: 1 // Ensure it is visible
+      }}
     >
       <ambientLight intensity={2} />
       <directionalLight position={[5, 5, 5]} intensity={1} />
-      <AnimatedCubes cubeRefs={cubeRefs} contextSafe={contextSafe} />
-      {/* <Perf position="top-left" /> */}
+      
+      {/* 3. Wrap in Suspense is CRITICAL for useTexture */}
+      <Suspense fallback={null}>
+        <AnimatedCubes cubeRefs={cubeRefs} contextSafe={contextSafe} />
+        <Preload all />
+      </Suspense>
     </Canvas>
   );
 }

@@ -2,10 +2,6 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 
-export const metadata: Metadata = {
-  title: 'Animated Portfolio Intro',
-  description: 'An animated portfolio intro for Joel Joshy.',
-};
 
 export default function RootLayout({
   children,
