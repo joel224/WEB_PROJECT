@@ -86,7 +86,7 @@ export default function KineticSection() {
             <img
                 src="/images/hero-left-leaf.png"
                 alt="Leaf Decor"
-                className="absolute left-[-5%] top-1/2 w-[180px] md:w-[300px] transition-transform duration-75 ease-linear"
+                className="absolute left-[-5%] top-1/2 w-[120px] md:w-[200px] transition-transform duration-75 ease-linear"
                 style={{ 
                     // Simple Parallax: Moves up slightly as you scroll down
                     transform: `translateY(calc(-50% - ${progress * 100}px))` 
@@ -97,7 +97,7 @@ export default function KineticSection() {
             <img
                 src="/images/hero-right-leaf.png"
                 alt="Leaf Decor"
-                className="absolute right-[-2%] top-[-5%] w-[200px] md:w-[350px] transition-transform duration-75 ease-linear"
+                className="absolute right-[-2%] top-[-5%] w-[140px] md:w-[200px] transition-transform duration-75 ease-linear"
                 style={{ 
                     // Simple Parallax: Moves down slightly as you scroll down
                     transform: `translateY(${progress * 150}px)` 
