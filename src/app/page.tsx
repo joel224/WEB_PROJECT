@@ -101,7 +101,7 @@ and inspire growth.
                    allowing the video scrubbing to finish completely. 
                 */}
                 <div className="h-[50vh] w-full bg-[#2B1C13] relative z-20 flex items-center justify-center text-white/20 text-sm">
-                   (End of Page)
+                   Thankyou 
                 </div>
             </motion.div>
           </>
