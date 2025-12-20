@@ -4,33 +4,25 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { gsap } from 'gsap';
 
 // --- SUB-COMPONENT 1: RANDOM TYPEWRITER ---
-// Used for "Precision" and "Digital"
 const TypewriterWord = ({ text, isActive }: { text: string; isActive: boolean }) => {
   const containerRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
     const chars = containerRef.current.querySelectorAll('.type-char');
-
-    // Kill any running tweens to prevent conflicts
     gsap.killTweensOf(chars);
 
     if (isActive) {
-      // 1. Reset to invisible
       gsap.set(chars, { opacity: 0, y: 5 });
-
-      // 2. Animate in (Randomized Stagger)
       gsap.to(chars, {
         opacity: 1,
         y: 0,
         duration: 0.1,
-        // "random" stagger makes it look like a hacked/typing effect
         stagger: { amount: 0.5, from: "random" }, 
-        delay: 0.2, // Wait for parent fade-in to start
+        delay: 0.2, 
         ease: "power2.out",
       });
     } else {
-      // Reset when not active so it can replay later
       gsap.set(chars, { opacity: 1, y: 0 }); 
     }
   }, [isActive]);
@@ -47,21 +39,17 @@ const TypewriterWord = ({ text, isActive }: { text: string; isActive: boolean })
 };
 
 // --- SUB-COMPONENT 2: SHIMMER TEXT ---
-// Adapted from your snippet for "Generation"
 const ShimmerWord = ({ text, isActive }: { text: string; isActive: boolean }) => {
   const containerRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
     const chars = containerRef.current.querySelectorAll('.shimmer-char');
-    const ctx = gsap.context(() => {}); // Empty context init
+    const ctx = gsap.context(() => {}); 
 
     if (isActive) {
       ctx.add(() => {
-        // 1. Create Timeline
-        const tl = gsap.timeline({ delay: 0.5 }); // Delay so text is visible first
-
-        // 2. The Sweep Animation
+        const tl = gsap.timeline({ delay: 0.5 }); 
         tl.fromTo(chars, 
           { 
             backgroundImage: "linear-gradient(110deg, #FFE9D9 40%, #FFFFFF 50%, #FFE9D9 60%)",
@@ -77,7 +65,6 @@ const ShimmerWord = ({ text, isActive }: { text: string; isActive: boolean }) =>
             ease: "power2.inOut",
             stagger: 0.05,
             onComplete: () => {
-              // Lock in the solid color at the end
               gsap.to(chars, {
                  color: "#FFE9D9",
                  webkitTextFillColor: "#FFE9D9",
@@ -88,11 +75,9 @@ const ShimmerWord = ({ text, isActive }: { text: string; isActive: boolean }) =>
         );
       });
     } else {
-       // Revert/Cleanup when inactive
        ctx.revert();
        gsap.set(chars, { color: "#FFE9D9", webkitTextFillColor: "#FFE9D9", background: "none" });
     }
-
     return () => ctx.revert();
   }, [isActive]);
 
@@ -114,7 +99,6 @@ export default function KineticSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [progress, setProgress] = useState(0);
 
-  // Define phrases data structure
   const phrases = useMemo(() => [
     { text: 'Innovation', type: 'normal' },
     { 
@@ -135,7 +119,6 @@ export default function KineticSection() {
     { text: 'Generation', type: 'shimmer' },
   ], []);
 
-  // --- RAW MATH LOOP ---
   useEffect(() => {
     let animationFrameId: number;
 
@@ -155,20 +138,17 @@ export default function KineticSection() {
       if (Math.abs(safeProgress - progress) > 0.001) {
           setProgress(safeProgress);
           
-          // 1. Scrub Video
           const vid = videoRef.current;
           if (vid.duration) {
               vid.currentTime = safeProgress * vid.duration;
           }
 
-          // 2. Active Text Index
           const index = Math.min(
               phrases.length - 1, 
               Math.floor(safeProgress * phrases.length)
           );
           setActiveIndex(index);
       }
-
       animationFrameId = requestAnimationFrame(update);
     };
 
@@ -193,7 +173,23 @@ export default function KineticSection() {
                 preload="auto"
                 src="/output.mp4" 
             />
+            {/* Dark Overlay (z-10) */}
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10" />
+        </div>
+
+        {/* --- LAYER 1.5: LIGHT GLOW (Added) --- */}
+        {/* z-[15] places it ABOVE the dark overlay but BELOW leaves/text */}
+        <div className="absolute inset-0 z-[15] pointer-events-none flex items-center justify-center">
+            <div 
+                className="
+                    w-[300px] h-[500px] md:w-[500px] md:h-[800px] 
+                    bg-white/40 
+                    rounded-[50%] 
+                    blur-[80px] md:blur-[120px] 
+                    rotate-90
+                "
+                // Removed mix-blend-mode to ensure visibility
+            />
         </div>
 
         {/* --- LAYER 2: LEAVES --- */}
@@ -212,7 +208,7 @@ export default function KineticSection() {
             />
         </div>
 
-        {/* --- LAYER 3: TEXT RENDERER --- */}
+        {/* --- LAYER 3: TEXT --- */}
         <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
           {phrases.map((phraseObj, i) => {
             const isActive = i === activeIndex;
@@ -231,12 +227,8 @@ export default function KineticSection() {
                   }
                 `}
               >
-                {/* LOGIC TO CHOOSE RENDER TYPE */}
-                
-                {/* 1. NORMAL TEXT */}
                 {phraseObj.type === 'normal' && phraseObj.text}
 
-                {/* 2. MIXED (Normal + Typewriter) */}
                 {phraseObj.type === 'mixed' && phraseObj.parts?.map((part, pIndex) => (
                   <span key={pIndex}>
                     {part.style === 'typewriter' 
@@ -246,11 +238,9 @@ export default function KineticSection() {
                   </span>
                 ))}
 
-                {/* 3. SHIMMER TEXT */}
                 {phraseObj.type === 'shimmer' && (
                   <ShimmerWord text={phraseObj.text!} isActive={isActive} />
                 )}
-
               </h2>
             );
           })}

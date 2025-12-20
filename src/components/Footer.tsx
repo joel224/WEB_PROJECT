@@ -45,8 +45,7 @@ const Footer = () => {
         className="max-w-xl mx-auto mb-8 font-sans"
         variants={itemVariants}
       >
-        Have a project in mind? We partner with brands and visionaries to bring
-        bold ideas to life in the digital space.
+       By Joel :) 
       </motion.p>
       <motion.div
         className="flex items-center justify-center space-x-6"
@@ -66,7 +65,7 @@ const Footer = () => {
         className="text-xs text-[#FFE9D9]/50 mt-12"
         variants={itemVariants}
       >
-        © {new Date().getFullYear()} Symphonia. All Rights Reserved.
+        © {new Date().getFullYear()}  All Rights Reserved.
       </motion.p>
     </motion.footer>
   );
