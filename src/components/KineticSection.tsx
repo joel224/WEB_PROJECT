@@ -22,7 +22,7 @@ export default function KineticSection() {
 
   useLayoutEffect(() => {
     // Wait until video metadata is loaded to ensure we have the correct duration
-    if (!isVideoReady && videoRef.current && !videoRef.current.duration) return;
+    if (!isVideoReady || !videoRef.current || !videoRef.current.duration) return;
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({
@@ -35,18 +35,17 @@ export default function KineticSection() {
       });
 
       // --- 1. VIDEO SCRUB (Strict Scroll Control) ---
-      if (videoRef.current) {
-        const vid = videoRef.current;
-        // Force video to pause immediately
-        vid.pause();
-        
-        // Scrub from time 0 to full duration
-        tl.fromTo(vid, 
-          { currentTime: 0 }, 
-          { currentTime: vid.duration || 10, ease: "none" }, 
-          0
-        );
-      }
+      const vid = videoRef.current;
+      // Ensure video is paused so GSAP can control it.
+      vid.pause();
+      
+      // Scrub from time 0 to full duration
+      tl.fromTo(vid, 
+        { currentTime: 0 }, 
+        { currentTime: vid.duration, ease: "none" }, 
+        0
+      );
+      
 
       // --- 2. TEXT ANIMATION ---
       const step = 1 / phrases.length; // Divide the scroll timeline evenly
@@ -91,7 +90,7 @@ export default function KineticSection() {
     }, containerRef);
     
     return () => ctx.revert();
-  }, [isVideoReady]); // Re-run once video loads
+  }, [isVideoReady]); // Re-run the effect once the video is ready
 
   return (
     <section 
@@ -113,7 +112,7 @@ export default function KineticSection() {
                 src="/output.mp4"
             />
             
-            {/* FIX: VISIBILITY UPGRADE 
+            {/* VISIBILITY UPGRADE 
                1. bg-black/70: Much darker overlay.
                2. backdrop-blur-sm: Blurs the video slightly to make text pop.
             */}
