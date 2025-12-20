@@ -18,11 +18,17 @@ export default function KineticSection() {
   const containerRef = useRef<HTMLElement>(null);
   const textRefs = useRef<(HTMLHeadingElement | null)[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Track readiness
   const [isVideoReady, setIsVideoReady] = useState(false);
 
   useLayoutEffect(() => {
-    // Wait until video metadata is loaded to ensure we have the correct duration
-    if (!isVideoReady || !videoRef.current || !videoRef.current.duration) return;
+    // Safety check: ensure video ref exists
+    if (!videoRef.current) return;
+    
+    // If video isn't marked ready yet, we wait. 
+    // BUT we also check if 'duration' is already available (cached) to avoid getting stuck.
+    if (!isVideoReady && !videoRef.current.duration) return;
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({
@@ -30,25 +36,33 @@ export default function KineticSection() {
           trigger: containerRef.current,
           start: 'top top',
           end: 'bottom bottom', 
-          scrub: 0.5, // Slight smoothing (0.5s) for a premium feel
+          scrub: 0.1, // Lower scrub for more responsive video scrubbing
         },
       });
 
-      // --- 1. VIDEO SCRUB (Strict Scroll Control) ---
+      // --- 1. VIDEO SCRUB ---
       const vid = videoRef.current;
-      // Ensure video is paused so GSAP can control it.
-      vid.pause();
       
-      // Scrub from time 0 to full duration
-      tl.fromTo(vid, 
-        { currentTime: 0 }, 
-        { currentTime: vid.duration, ease: "none" }, 
-        0
-      );
-      
+      if (vid) {
+          // DEBUG: Check if we are grabbing the video correctly
+          console.log("GSAP Video Init:", vid.duration);
+
+          // FALLBACK: If browser reports Infinity/NaN, assume 10s duration so it still works
+          const safeDuration = (Number.isFinite(vid.duration) && vid.duration > 0) 
+            ? vid.duration 
+            : 10;
+
+          vid.pause(); // Force pause
+          
+          tl.fromTo(vid, 
+            { currentTime: 0 }, 
+            { currentTime: safeDuration, ease: "none" }, 
+            0
+          );
+      }
 
       // --- 2. TEXT ANIMATION ---
-      const step = 1 / phrases.length; // Divide the scroll timeline evenly
+      const step = 1 / phrases.length;
 
       phrases.forEach((_, i) => {
         const text = textRefs.current[i];
@@ -56,7 +70,7 @@ export default function KineticSection() {
 
         const startTime = i * step;
 
-        // Reset state
+        // Reset
         gsap.set(text, { 
              y: '100%', 
              opacity: 0, 
@@ -74,7 +88,7 @@ export default function KineticSection() {
           ease: 'power3.out',
         }, startTime); 
 
-        // Exit (except last one)
+        // Exit
         if (i < phrases.length - 1) {
             tl.to(text, {
                 y: '-100%',
@@ -90,7 +104,7 @@ export default function KineticSection() {
     }, containerRef);
     
     return () => ctx.revert();
-  }, [isVideoReady]); // Re-run the effect once the video is ready
+  }, [isVideoReady]); // Re-run when video says it's ready
 
   return (
     <section 
@@ -100,22 +114,21 @@ export default function KineticSection() {
       <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col justify-center items-center">
         
         {/* VIDEO LAYER */}
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 bg-black"> 
+          {/* bg-black ensures no white flash if video loads slow */}
             <video
                 ref={videoRef}
                 className="w-full h-full object-cover"
                 muted
                 playsInline
-                // Removed autoPlay and loop. 
-                // onLoadedMetadata signals GSAP that duration is available.
-                onLoadedMetadata={() => setIsVideoReady(true)}
+                preload="auto"
+                // FIX: Path must be in 'public/output.mp4'
                 src="/output.mp4"
+                onLoadedMetadata={() => {
+                    console.log("Video Metadata Loaded");
+                    setIsVideoReady(true);
+                }}
             />
-            
-            {/* VISIBILITY UPGRADE 
-               1. bg-black/70: Much darker overlay.
-               2. backdrop-blur-sm: Blurs the video slightly to make text pop.
-            */}
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-10" />
         </div>
 

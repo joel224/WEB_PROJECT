@@ -1,7 +1,8 @@
 'use client';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import type { Mesh } from 'three';
+import { motion, AnimatePresence } from 'framer-motion';
 import Scene from '@/components/Scene';
 import FigmaLogo from '@/components/FigmaLogo';
 import RevealText from '@/components/RevealText'; 
@@ -10,14 +11,40 @@ import KineticSection from '@/components/KineticSection';
 export default function Home() {
   const cubeRefs = useRef<(Mesh | null)[]>([]);
   const { contextSafe } = useGSAP();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    
+    // Simulate asset loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2500); // Adjust time as needed
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <main className="relative w-full bg-[#2B1C13] text-[#FFE9D9] font-sans">
       
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            className="fixed inset-0 bg-[#2B1C13] z-50 flex items-center justify-center"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }}
+            onAnimationComplete={() => {
+              const el = document.querySelector('.loading-overlay');
+              if (el) (el as HTMLElement).style.pointerEvents = 'none';
+            }}
+          >
+            {/* Optional: Add a spinner or logo here */}
+            <div className="text-beige">Loading...</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 3D SCENE */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Scene cubeRefs={cubeRefs} />
