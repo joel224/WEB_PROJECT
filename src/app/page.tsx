@@ -24,7 +24,7 @@ export default function Home() {
         <section className="h-screen w-full flex flex-col items-center pt-[15vh] sticky top-0 z-10">
           
           {/* Logo Spacer: The 3D cubes will sit exactly here */}
-          <div className="w-[154px] h-[96px] mb-12"></div>
+          <div className="w-[154px] h-[96px] mb-20"></div>
 
           {/* Headline Text - Will Blur Out */}
           <div className="hero-text text-center transition-all will-change-transform">
