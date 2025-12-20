@@ -1,6 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
+
 
 export const metadata: Metadata = {
   title: 'Animated Portfolio Intro',
@@ -21,7 +21,7 @@ export default function RootLayout({
       </head>
       <body className="font-headline antialiased">
         {children}
-        <Toaster />
+      
       </body>
     </html>
   );
