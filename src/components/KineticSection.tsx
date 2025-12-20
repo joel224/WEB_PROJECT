@@ -187,7 +187,9 @@ export default function KineticSection() {
                     rounded-[50%] 
                     blur-[80px] md:blur-[120px] 
                     rotate-90
+                    opacity: 0.5
                 "
+                
                 // Removed mix-blend-mode to ensure visibility
             />
         </div>
