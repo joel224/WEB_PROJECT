@@ -7,6 +7,7 @@ import Scene from '@/components/Scene';
 import FigmaLogo from '@/components/FigmaLogo';
 import RevealText from '@/components/RevealText'; 
 import KineticSection from '@/components/KineticSection';
+import Footer from '@/components/Footer';
 
 export default function Home() {
   const cubeRefs = useRef<(Mesh | null)[]>([]);
@@ -96,13 +97,9 @@ and inspire growth.
                 {/* PAGE 3: KINETIC VIDEO */}
                 <KineticSection />
                 
-                {/* FIX: SCROLL SPACER / FOOTER
-                   This invisible div ensures you can scroll "past" the pinned video section,
-                   allowing the video scrubbing to finish completely. 
-                */}
-                <div className="h-[50vh] w-full bg-[#2B1C13] relative z-20 flex items-center justify-center text-white/20 text-sm">
-                   Thankyou 
-                </div>
+                {/* FOOTER */}
+                <Footer />
+
             </motion.div>
           </>
         )}
