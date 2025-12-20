@@ -138,7 +138,7 @@ export default function Experience() {
                 </div>
                 <div className="text-center space-y-4">
                     <h2 className="text-6xl md:text-9xl font-bold text-black tracking-tighter mix-blend-overlay opacity-80">Woxro</h2>
-                    <p className="text-white/40 font-mono text-xs tracking-widest uppercase">Interactive WebGL Experience</p>
+                    <p className="text-black/40 font-mono text-xs tracking-widest uppercase">Interactive WebGL Experience</p>
                 </div>
                 <div className="flex justify-between items-end text-white/30 font-mono text-xs"><p>LAT: 45.230</p><p>LNG: -12.049</p></div>
             </div>
