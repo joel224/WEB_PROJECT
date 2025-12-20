@@ -1,53 +1,23 @@
-export default function FigmaLogo() {
-    // Shared box styles
-    const rectStyle = "absolute w-[36px] h-[35px] bg-[#FFE9D9]";
+type FigmaLogoProps = {
+    className?: string;
+  };
   
-    // MATH EXPLANATION:
-    // Container Center: 77px
-    // Box Width: 36px (Half: 18px)
-    // Top Center Box Start: 77 - 18 = 59px
-    
-    // To make the sides "stick" like the right one:
-    // Right Box Left: 95px (Gap of 0px from center box)
-    // Left Box Left:  23px (Calculated to match 95px symmetrically)
-    
+  export default function FigmaLogo({ className }: FigmaLogoProps) {
     return (
-      <div className="relative w-[154px] h-[96px]">
-        
-        {/* --- BOTTOM ROW (Fixed Base) --- */}
-        {/* Perfectly spaced with 23px gaps */}
-        <div className={rectStyle} style={{ left: '0px', top: '61px' }} />
-        <div className={rectStyle} style={{ left: '59px', top: '61px' }} />
-        <div className={rectStyle} style={{ left: '118px', top: '61px' }} />
-  
-        {/* --- TOP ROW (The Arch) --- */}
-  
-        {/* 1. Left Arch Box */}
-        {/* Fixed: Moved from 9px to 23px to match the right side */}
-        <div 
-          className={rectStyle} 
-          style={{ 
-            left: '23px', 
-            top: '11px', 
-            transform: 'rotate(45deg)', // Standardized angle
-            transformOrigin: 'center center'
-          }} 
-        />
-  
-        {/* 2. Top Center Box (Keystone) */}
-        <div className={rectStyle} style={{ left: '59px', top: '0px', zIndex: 10 }} />
-  
-        {/* 3. Right Arch Box */}
-        {/* This was the "good" one, we kept it at 95px */}
-        <div 
-          className={rectStyle} 
-          style={{ 
-            left: '95px', 
-            top: '11px', 
-            transform: 'rotate(-45deg)', // Standardized angle
-            transformOrigin: 'center center'
-          }} 
-        />
-      </div>
+      <svg 
+        width="154" 
+        height="96" 
+        viewBox="0 0 154 96" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+      >
+        <rect y="61" width="36" height="35" fill="#FFE9D9"/>
+        <rect x="59" y="61" width="36" height="35" fill="#FFE9D9"/>
+        <rect x="118" y="61" width="36" height="35" fill="#FFE9D9"/>
+        <rect x="32.709" y="11" width="36" height="35" transform="rotate(42.6414 32.709 11)" fill="#FFE9D9"/>
+        <rect x="59" width="36" height="35" fill="#FFE9D9"/>
+        <rect x="120.771" y="10.9988" width="36" height="35" transform="rotate(47.4257 120.771 10.9988)" fill="#FFE9D9"/>
+      </svg>
     );
   }

@@ -1,67 +1,72 @@
 'use client';
 
-import { Canvas, useThree, type Viewport } from '@react-three/fiber';
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
+import { Suspense, useRef, type MutableRefObject, useCallback } from 'react';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { PerspectiveCamera } from '@react-three/drei';
+import type { Mesh, Group, Viewport } from 'three';
+import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { MutableRefObject, Suspense } from 'react';
-import { Preload } from '@react-three/drei';
-import type { Mesh } from 'three';
 
-import { cubesData } from '@/lib/cube-data';
+import { cubesData, type CubeData } from '@/lib/cube-data';
 import HeroCube from './HeroCube';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// --- UTILITY FUNCTIONS ---
 const DESIGN_WIDTH = 1920;
 const DESIGN_HEIGHT = 1200;
 
-type AnimatedCubesProps = {
-  cubeRefs: MutableRefObject<(Mesh | null)[]>;
-  contextSafe: (fn: Function) => Function;
-};
+function calculateScale(figmaWidth: number, viewport: Viewport) {
+  const viewportWidth = viewport.width;
+  const scale = (figmaWidth / DESIGN_WIDTH) * viewportWidth;
+  return scale;
+}
 
-// Helper to map Pixels to 3D Units
-function pixelToThree(x: number, y: number, viewport: Viewport) {
-  // x: 0 is left edge, 1920 is right edge
-  // threeX: 0 is center
+function usePixelToThree(x: number, y: number) {
+  const { viewport } = useThree();
   const threeX = (x / DESIGN_WIDTH) * viewport.width - viewport.width / 2;
   const threeY = -((y / DESIGN_HEIGHT) * viewport.height - viewport.height / 2);
   return { x: threeX, y: threeY };
 }
 
-function calculateScale(pixelWidth: number, viewport: Viewport) {
-  return (pixelWidth / DESIGN_WIDTH) * viewport.width;
-}
 
-const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
+// --- THE 3D CUBES COMPONENT ---
+type AnimatedCubesProps = {
+  cubeRefs: MutableRefObject<(Mesh | null)[]>;
+};
+
+function AnimatedCubes({ cubeRefs }: AnimatedCubesProps) {
+  const groupRef = useRef<Group>(null);
   const { viewport } = useThree();
 
-  const animate = contextSafe(() => {
-    if (!cubeRefs.current.length || !viewport.width) return;
+  const pixelToThree = usePixelToThree;
 
-    // 1. TEXT BLUR ANIMATION (HTML)
-    // We animate the CSS filter property
-    const textTimeline = gsap.timeline({
+  const animate = useCallback(() => {
+    if (!cubeRefs.current.length) return;
+
+    // 1. UI TIMELINE (HTML elements)
+    const uiTimeline = gsap.timeline({
       scrollTrigger: {
         trigger: '.scroller',
         start: 'top top',
-        end: '50% top', // Effect happens quickly
+        end: '20% top',
         scrub: true,
       },
     });
 
-    textTimeline
-      .to('.hero-text', { opacity: 0, filter: 'blur(10px)', duration: 1 })
-      .to('.center-text', { opacity: 1, filter: 'blur(0px)', duration: 1 }, "-=0.5");
+    uiTimeline
+      .to('.logo-fade', { opacity: 0, duration: 0.5 }, 0)
+      .to('.hero-text', { opacity: 0, filter: 'blur(10px)', duration: 1 }, 0)
+      .to('.center-text', { opacity: 1, filter: 'blur(0px)', duration: 1 }, 0.5);
 
-    // 2. CUBE EXPLOSION ANIMATION (3D)
+
+    // 2. CUBE TIMELINE (3D WebGL elements)
     const cubeTimeline = gsap.timeline({
       scrollTrigger: {
         trigger: '.scroller',
         start: 'top top',
         end: 'bottom bottom',
-        scrub: 1, // Add slight delay for smoothness
+        scrub: 1,
       },
     });
 
@@ -69,90 +74,88 @@ const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
       const cubeRef = cubeRefs.current[index];
       if (!cubeRef) return;
 
-      const startPos = pixelToThree(cube.start.x, cube.start.y, viewport);
+      const startPos = pixelToThree(cube.start.x, cube.start.y);
       const startScale = calculateScale(cube.start.w, viewport);
-      const startRotZ = (cube.start.rotationZ * Math.PI) / 180;
-      
-      const startRotY = cube.start.rotationY || 0; 
 
-      const endPos = pixelToThree(cube.end.x, cube.end.y, viewport);
+      const endPos = pixelToThree(cube.end.x, cube.end.y);
       const endScale = calculateScale(cube.end.w, viewport);
       const endRotationRad = (cube.end.rotation * Math.PI) / 180;
 
+      // INITIAL STATE
       gsap.set(cubeRef.position, { ...startPos, z: 0 });
-      gsap.set(cubeRef.scale, { x: startScale, y: startScale, z: 0.1 }); 
-      gsap.set(cubeRef.rotation, { x: 0, y: startRotY, z: startRotZ });
+      gsap.set(cubeRef.scale, { x: 0, y: 0, z: 0 }); // Start hidden
+      gsap.set(cubeRef.rotation, { x: 0, y: Math.PI, z: (cube.start.rotationZ * Math.PI) / 180 });
 
-      cubeTimeline.to(cubeRef.position, {
-          z: 4, 
-          duration: 0.4,
-          ease: "power2.inOut"
+      // ANIMATION
+      // Pop up to replace SVG
+      cubeTimeline.to(cubeRef.scale, {
+          x: startScale, y: startScale, z: startScale,
+          duration: 0.1,
+          ease: "power2.out"
       }, 0);
 
-      cubeTimeline.to(cubeRef.rotation, {
-          x: Math.random() * Math.PI, 
-          y: Math.random() * Math.PI, 
-          z: Math.random() * Math.PI,
-          duration: 0.4
-      }, 0);
-
+      // Fly to end position
       cubeTimeline.to(cubeRef.position, {
           x: endPos.x,
           y: endPos.y,
           z: 0,
-          duration: 0.6,
-          ease: "power2.out"
-      }, 0.4);
+          duration: 0.9,
+          ease: "power2.inOut"
+      }, 0.1);
 
+      // Rotate to end rotation
       cubeTimeline.to(cubeRef.rotation, {
           x: 0,
           y: 0,
           z: endRotationRad,
-          duration: 0.6
-      }, 0.4);
-
+          duration: 0.9
+      }, 0.1);
+      
+      // Scale to end size
       cubeTimeline.to(cubeRef.scale, {
-          x: endScale,
-          y: endScale,
-          z: endScale,
-          duration: 0.6
-      }, 0.4);
+          x: endScale, y: endScale, z: endScale,
+          duration: 0.9
+      }, 0.1);
     });
-  });
-  
+  }, [cubeRefs, pixelToThree, viewport]);
+
+
   useGSAP(() => {
-    if (viewport.width > 0) animate();
+    if (viewport.width > 0) { // Ensure viewport is calculated
+        animate();
+    }
   }, { dependencies: [viewport, animate] });
 
+
   return (
-    <group>
+    <group ref={groupRef}>
       {cubesData.map((cube, i) => (
         <HeroCube
           key={cube.id}
+          ref={(el) => (cubeRefs.current[i] = el)}
           image={cube.image}
-          ref={(el) => { cubeRefs.current[i] = el; }}
         />
       ))}
     </group>
   );
 };
 
+
+// --- THE MAIN SCENE COMPONENT ---
 type SceneProps = {
   cubeRefs: MutableRefObject<(Mesh | null)[]>;
-  contextSafe: (fn: Function) => Function;
+  contextSafe?: <T extends (...args: any) => any>(fn: T) => T; // Make it optional
 };
 
 export default function Scene({ cubeRefs, contextSafe }: SceneProps) {
   return (
-    <Canvas
-      camera={{ position: [0, 0, 10], fov: 50 }}
-      style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0, pointerEvents: 'none' }}
-    >
+    <Canvas>
       <ambientLight intensity={1.5} />
-      <directionalLight position={[5, 5, 5]} intensity={1} />
+      <directionalLight position={[0, 0, 5]} intensity={1} />
+      <PerspectiveCamera makeDefault position={[0, 0, 10]} fov={30} />
+
       <Suspense fallback={null}>
-        <AnimatedCubes cubeRefs={cubeRefs} contextSafe={contextSafe} />
-        <Preload all />
+        <AnimatedCubes cubeRefs={cubeRefs} />
       </Suspense>
     </Canvas>
   );
