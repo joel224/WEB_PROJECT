@@ -1,116 +1,80 @@
 export type CubeData = {
   id: number;
   image: string;
-  start: { x: number; y: number; w: number; rotation: number; rotationZ: number; rotationY: number };
+  startOffset: { x: number; y: number; rotationZ: number };
   end: { x: number; y: number; w: number; rotation: number };
+  endMobile: { x: number; y: number; w: number; rotation: number };
 };
 
 const DW = 1920; 
 const DH = 1200;
 
-// Offsets from Figma Group 1 position
-const GROUP_X = 841;
-const GROUP_Y = 419;
-
-// Helper: 36px width / 2 = 18px offset for center
-const HALF_SIZE = 18;
+// --- HELPER ---
+const getPos = (svgX: number, svgY: number, width: number, height: number) => {
+  const centerX = 154 / 2;
+  const centerY = 96 / 2;
+  
+  const x = (svgX + width/2) - centerX;
+  const y = centerY - (svgY + height/2);
+  
+  return { x, y };
+}
 
 export const cubesData: CubeData[] = [
-  // --- BOTTOM ROW (Straight Rectangles) ---
-
-  // 1. Bottom Left (SVG: rect x="0" y="61")
+  // --- CUBE 1 (Top Left) ---
   {
     id: 1, 
     image: '/images/cube1.png', 
-    start: { 
-      x: GROUP_X + 0 + HALF_SIZE,    // 859
-      y: GROUP_Y + 61 + HALF_SIZE,   // 498
-      w: 36, 
-      rotation: 0, 
-      rotationZ: 0, 
-      rotationY: Math.PI 
-    },
-    end: { x: DW/2 - 350, y: DH/2 - 200, w: 180, rotation: 15 },
+    startOffset: { ...getPos(0, 61, 36, 35), rotationZ: 0 },
+    end: { x: 1920/2 - 280, y: 1200/2 - 350, w: 200, rotation: 0 },
+    endMobile: { x: -180, y: -300, w: 160, rotation: 10 },
   },
-  
-  // 2. Bottom Center (SVG: rect x="59" y="61")
+
+  // --- CUBE 2 (Top Right) ---
   {
     id: 2, 
     image: '/images/cube2.png', 
-    start: { 
-      x: GROUP_X + 59 + HALF_SIZE,   // 918
-      y: GROUP_Y + 61 + HALF_SIZE,   // 498
-      w: 36, 
-      rotation: 0, 
-      rotationZ: 0, 
-      rotationY: Math.PI 
-    },
-    end: { x: DW/2 + 350, y: DH/2 - 200, w: 180, rotation: -15 },
+    startOffset: { ...getPos(59, 61, 36, 35), rotationZ: 0 },
+    end: { x: 1920/2 + 280, y: 1200/2 - 350, w: 200, rotation: 0 },
+    endMobile: { x: 180, y: -300, w: 160, rotation: -10 },
   },
-  
-  // 3. Bottom Right (SVG: rect x="118" y="61")
+
+  // --- CUBE 3 (Mid Left - HIDDEN ON MOBILE) ---
   {
     id: 3, 
     image: '/images/cube3.png', 
-    start: { 
-      x: GROUP_X + 118 + HALF_SIZE,  // 977
-      y: GROUP_Y + 61 + HALF_SIZE,   // 498
-      w: 36, 
-      rotation: 0, 
-      rotationZ: 0, 
-      rotationY: Math.PI 
-    },
-    end: { x: DW/2 - 480, y: DH/2 + 50, w: 180, rotation: -10 },
+    startOffset: { ...getPos(118, 61, 36, 35), rotationZ: 0 },
+    end: { x: 1920/2 - 650, y: 1200/2, w: 200, rotation: 0 },
+    // Fix: Normal Width (150) so it doesn't "shrink". 
+    // We will hide it via Opacity in Scene.tsx
+    endMobile: { x: -220, y: 0, w: 150, rotation: 15 },
   },
 
-  // --- TOP ROW (Rotated & Straight) ---
-
-  // 4. Top Left Angled (SVG: x="32.709" y="11" rotate="42.6414")
-  // Note: SVG rotates around the top-left corner (32.709, 11).
-  // We need to place the center of our 3D cube roughly where the center of that rotated rect ends up.
-  // Visual adjustment: Move X slightly right and Y down to account for the pivot.
+  // --- CUBE 4 (Mid Right - HIDDEN ON MOBILE) ---
   {
     id: 4, 
     image: '/images/cube4.png', 
-    start: { 
-      x: GROUP_X + 32.709 + 12, // Adjusted for pivot
-      y: GROUP_Y + 11 + 24,     // Adjusted for pivot
-      w: 36, 
-      rotation: 0, 
-      rotationZ: -42.64,        // NEGATIVE for Three.js (Counter-Clockwise)
-      rotationY: Math.PI 
-    },
-    end: { x: DW/2 + 480, y: DH/2 + 50, w: 180, rotation: 10 },
+    startOffset: { ...getPos(32.7, 11, 36, 35), rotationZ: -42.64 },
+    end: { x: 1920/2 + 650, y: 1200/2, w: 200, rotation: 0 },
+    // Fix: Normal Width (150)
+    endMobile: { x: 220, y: 0, w: 150, rotation: -15 },
   },
 
-  // 5. Top Center (SVG: rect x="59" y="0")
+  // --- CUBE 5 (Bottom Left) ---
   {
     id: 5, 
     image: '/images/cube5.png', 
-    start: { 
-      x: GROUP_X + 59 + HALF_SIZE,  // 918
-      y: GROUP_Y + 0 + HALF_SIZE,   // 437
-      w: 36, 
-      rotation: 0, 
-      rotationZ: 0, 
-      rotationY: Math.PI 
-    },
-    end: { x: DW/2 - 350, y: DH/2 + 300, w: 180, rotation: 25 },
+    startOffset: { ...getPos(59, 0, 36, 35), rotationZ: 0 },
+    end: { x: 1920/2 - 280, y: 1200/2 + 350, w: 200, rotation: 0 },
+    endMobile: { x: -180, y: 300, w: 160, rotation: -10 },
   },
 
-  // 6. Top Right Angled (SVG: x="120.771" y="10.9988" rotate="47.4257")
-  // Similar logic to #4, adjusted for the pivot point being on the left.
+  // --- CUBE 6 (Bottom Right) ---
   {
     id: 6, 
     image: '/images/cube6.png', 
-    start: { 
-      x: GROUP_X + 120.771 - 10,  // Shift Left slightly
-      y: GROUP_Y + 11 + 25,       // Shift Down
-      w: 36, 
-      rotation: 0, 
-      rotationZ: -47.43,          // NEGATIVE for Three.js
-      rotationY: Math.PI 
-    },
-    end: { x: DW/2 + 350, y: DH/2 + 300, w: 180, rotation: -25 },
+    startOffset: { ...getPos(120.7, 11, 36, 35), rotationZ: -47.43 },
+    end: { x: 1920/2 + 280, y: 1200/2 + 350, w: 200, rotation: 0 },
+    endMobile: { x: 180, y: 300, w: 160, rotation: 10 },
   },
 ];

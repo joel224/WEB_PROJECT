@@ -57,6 +57,7 @@
     border-color: hsl(var(--border));
   }
   body {
+    @apply bg-[#2B1C13] m-0 p-0;
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
