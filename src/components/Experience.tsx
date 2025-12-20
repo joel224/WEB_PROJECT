@@ -137,7 +137,7 @@ export default function Experience() {
                     <div className="text-right"><div className="w-2 h-2 bg-[#00ff88] rounded-full inline-block mr-2 animate-pulse"/><span className="text-[#00ff88] font-mono text-xs">SYSTEM ONLINE</span></div>
                 </div>
                 <div className="text-center space-y-4">
-                    <h2 className="text-6xl md:text-9xl font-bold text-white tracking-tighter mix-blend-overlay opacity-80">Woxro</h2>
+                    <h2 className="text-6xl md:text-9xl font-bold text-black tracking-tighter mix-blend-overlay opacity-80">Woxro</h2>
                     <p className="text-white/40 font-mono text-xs tracking-widest uppercase">Interactive WebGL Experience</p>
                 </div>
                 <div className="flex justify-between items-end text-white/30 font-mono text-xs"><p>LAT: 45.230</p><p>LNG: -12.049</p></div>
