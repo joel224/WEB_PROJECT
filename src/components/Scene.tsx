@@ -1,13 +1,14 @@
 'use client';
 
 import { Suspense, useRef, type MutableRefObject, useCallback } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import type { Mesh, Group, Viewport } from 'three';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
 
-import { cubesData, type CubeData } from '@/lib/cube-data';
+import { cubesData } from '@/lib/cube-data';
 import HeroCube from './HeroCube';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -22,8 +23,7 @@ function calculateScale(figmaWidth: number, viewport: Viewport) {
   return scale;
 }
 
-function usePixelToThree(x: number, y: number) {
-  const { viewport } = useThree();
+function usePixelToThree(x: number, y: number, viewport: Viewport) {
   const threeX = (x / DESIGN_WIDTH) * viewport.width - viewport.width / 2;
   const threeY = -((y / DESIGN_HEIGHT) * viewport.height - viewport.height / 2);
   return { x: threeX, y: threeY };
@@ -39,10 +39,9 @@ function AnimatedCubes({ cubeRefs }: AnimatedCubesProps) {
   const groupRef = useRef<Group>(null);
   const { viewport } = useThree();
 
-  const pixelToThree = usePixelToThree;
 
   const animate = useCallback(() => {
-    if (!cubeRefs.current.length) return;
+    if (!cubeRefs.current.length || !viewport.width) return;
 
     // 1. UI TIMELINE (HTML elements)
     const uiTimeline = gsap.timeline({
@@ -74,10 +73,10 @@ function AnimatedCubes({ cubeRefs }: AnimatedCubesProps) {
       const cubeRef = cubeRefs.current[index];
       if (!cubeRef) return;
 
-      const startPos = pixelToThree(cube.start.x, cube.start.y);
+      const startPos = usePixelToThree(cube.start.x, cube.start.y, viewport);
       const startScale = calculateScale(cube.start.w, viewport);
 
-      const endPos = pixelToThree(cube.end.x, cube.end.y);
+      const endPos = usePixelToThree(cube.end.x, cube.end.y, viewport);
       const endScale = calculateScale(cube.end.w, viewport);
       const endRotationRad = (cube.end.rotation * Math.PI) / 180;
 
@@ -117,7 +116,7 @@ function AnimatedCubes({ cubeRefs }: AnimatedCubesProps) {
           duration: 0.9
       }, 0.1);
     });
-  }, [cubeRefs, pixelToThree, viewport]);
+  }, [cubeRefs, viewport]);
 
 
   useGSAP(() => {
@@ -138,7 +137,7 @@ function AnimatedCubes({ cubeRefs }: AnimatedCubesProps) {
       ))}
     </group>
   );
-};
+}
 
 
 // --- THE MAIN SCENE COMPONENT ---
@@ -147,7 +146,7 @@ type SceneProps = {
   contextSafe?: <T extends (...args: any) => any>(fn: T) => T; // Make it optional
 };
 
-export default function Scene({ cubeRefs, contextSafe }: SceneProps) {
+export default function Scene({ cubeRefs }: SceneProps) {
   return (
     <Canvas>
       <ambientLight intensity={1.5} />
