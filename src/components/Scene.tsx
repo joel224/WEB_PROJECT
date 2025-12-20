@@ -1,12 +1,12 @@
 'use client';
 
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, type Viewport } from '@react-three/fiber';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { MutableRefObject, Suspense } from 'react'; // 1. Import Suspense
-import type { Mesh, Viewport } from 'three';
-import { Preload } from '@react-three/drei'; // 2. Import Preload
+import { MutableRefObject, Suspense } from 'react';
+import { Preload } from '@react-three/drei';
+import type { Mesh } from 'three';
 
 import { cubesData } from '@/lib/cube-data';
 import HeroCube from './HeroCube';
@@ -21,7 +21,10 @@ type AnimatedCubesProps = {
   contextSafe: (fn: Function) => Function;
 };
 
+// Helper to map Pixels to 3D Units
 function pixelToThree(x: number, y: number, viewport: Viewport) {
+  // x: 0 is left edge, 1920 is right edge
+  // threeX: 0 is center
   const threeX = (x / DESIGN_WIDTH) * viewport.width - viewport.width / 2;
   const threeY = -((y / DESIGN_HEIGHT) * viewport.height - viewport.height / 2);
   return { x: threeX, y: threeY };
@@ -35,27 +38,30 @@ const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
   const { viewport } = useThree();
 
   const animate = contextSafe(() => {
-    if (!cubeRefs.current.length || !viewport.width) return; // Add viewport check
+    if (!cubeRefs.current.length || !viewport.width) return;
 
-    // ... (Keep your existing gsap code here exactly as it was) ...
-    // Note: Ensure your .title-overlay class exists in your HTML/page.tsx
-    
-    gsap.to('.title-overlay', {
-      opacity: 0,
+    // 1. TEXT BLUR ANIMATION (HTML)
+    // We animate the CSS filter property
+    const textTimeline = gsap.timeline({
       scrollTrigger: {
         trigger: '.scroller',
         start: 'top top',
-        end: '20% top',
+        end: '50% top', // Effect happens quickly
         scrub: true,
       },
     });
 
-    const tl = gsap.timeline({
+    textTimeline
+      .to('.hero-text', { opacity: 0, filter: 'blur(10px)', duration: 1 })
+      .to('.center-text', { opacity: 1, filter: 'blur(0px)', duration: 1 }, "-=0.5");
+
+    // 2. CUBE EXPLOSION ANIMATION (3D)
+    const cubeTimeline = gsap.timeline({
       scrollTrigger: {
         trigger: '.scroller',
         start: 'top top',
         end: 'bottom bottom',
-        scrub: true,
+        scrub: 1, // Add slight delay for smoothness
       },
     });
 
@@ -65,36 +71,57 @@ const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
 
       const startPos = pixelToThree(cube.start.x, cube.start.y, viewport);
       const startScale = calculateScale(cube.start.w, viewport);
-      const startRotationRad = (cube.start.rotation * Math.PI) / 180;
+      const startRotZ = (cube.start.rotationZ * Math.PI) / 180;
+      
+      const startRotY = cube.start.rotationY || 0; 
 
       const endPos = pixelToThree(cube.end.x, cube.end.y, viewport);
       const endScale = calculateScale(cube.end.w, viewport);
       const endRotationRad = (cube.end.rotation * Math.PI) / 180;
 
-      // Set initial state
       gsap.set(cubeRef.position, { ...startPos, z: 0 });
-      gsap.set(cubeRef.scale, { x: startScale, y: startScale, z: startScale });
-      gsap.set(cubeRef.rotation, { x: 0, y: 0, z: startRotationRad });
+      gsap.set(cubeRef.scale, { x: startScale, y: startScale, z: 0.1 }); 
+      gsap.set(cubeRef.rotation, { x: 0, y: startRotY, z: startRotZ });
 
-      // Animation Timeline
-      tl.to(cubeRef.position, { z: 5, duration: 0.2 }, 0) // Adjusted Z to be closer
-        .to(cubeRef.rotation, { 
-             x: Math.random() * Math.PI * 2, 
-             y: Math.random() * Math.PI * 2, 
-             z: Math.random() * Math.PI * 2, 
-             duration: 0.2 
-        }, 0);
+      cubeTimeline.to(cubeRef.position, {
+          z: 4, 
+          duration: 0.4,
+          ease: "power2.inOut"
+      }, 0);
 
-      tl.to(cubeRef.position, { ...endPos, z: 0, duration: 0.8 }, 0.2)
-        .to(cubeRef.scale, { x: endScale, y: endScale, z: endScale, duration: 0.8 }, 0.2)
-        .to(cubeRef.rotation, { x: 0, y: 0, z: endRotationRad, duration: 0.8 }, 0.2);
+      cubeTimeline.to(cubeRef.rotation, {
+          x: Math.random() * Math.PI, 
+          y: Math.random() * Math.PI, 
+          z: Math.random() * Math.PI,
+          duration: 0.4
+      }, 0);
+
+      cubeTimeline.to(cubeRef.position, {
+          x: endPos.x,
+          y: endPos.y,
+          z: 0,
+          duration: 0.6,
+          ease: "power2.out"
+      }, 0.4);
+
+      cubeTimeline.to(cubeRef.rotation, {
+          x: 0,
+          y: 0,
+          z: endRotationRad,
+          duration: 0.6
+      }, 0.4);
+
+      cubeTimeline.to(cubeRef.scale, {
+          x: endScale,
+          y: endScale,
+          z: endScale,
+          duration: 0.6
+      }, 0.4);
     });
   });
-
+  
   useGSAP(() => {
-    if(viewport.width > 0) {
-       animate();
-    }
+    if (viewport.width > 0) animate();
   }, { dependencies: [viewport, animate] });
 
   return (
@@ -103,9 +130,7 @@ const AnimatedCubes = ({ cubeRefs, contextSafe }: AnimatedCubesProps) => {
         <HeroCube
           key={cube.id}
           image={cube.image}
-          ref={(el) => {
-            cubeRefs.current[i] = el;
-          }}
+          ref={(el) => { cubeRefs.current[i] = el; }}
         />
       ))}
     </group>
@@ -120,20 +145,11 @@ type SceneProps = {
 export default function Scene({ cubeRefs, contextSafe }: SceneProps) {
   return (
     <Canvas
-      camera={{ position: [0, 0, 10], fov: 50 }} // Increased Z to see more
-      style={{ 
-        width: '100vw', 
-        height: '100vh',
-        position: 'fixed', // Ensure it stays behind
-        top: 0,
-        left: 0,
-        zIndex: 1 // Ensure it is visible
-      }}
+      camera={{ position: [0, 0, 10], fov: 50 }}
+      style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0, pointerEvents: 'none' }}
     >
-      <ambientLight intensity={2} />
+      <ambientLight intensity={1.5} />
       <directionalLight position={[5, 5, 5]} intensity={1} />
-      
-      {/* 3. Wrap in Suspense is CRITICAL for useTexture */}
       <Suspense fallback={null}>
         <AnimatedCubes cubeRefs={cubeRefs} contextSafe={contextSafe} />
         <Preload all />

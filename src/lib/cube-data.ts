@@ -1,57 +1,54 @@
-import { PlaceHolderImages } from './placeholder-images';
+// src/lib/cube-data.ts
 
 export type CubeData = {
   id: number;
   image: string;
-  start: { x: number; y: number; w: number; rotation: number };
+  start: { x: number; y: number; w: number; rotation: number; rotationZ: number; rotationY: number };
   end: { x: number; y: number; w: number; rotation: number };
 };
 
-// Center of screen is roughly x: 960, y: 600
-const CX = 960;
-const CY = 600;
+const DW = 1920; 
+const DH = 1200;
 
 export const cubesData: CubeData[] = [
-  // 1. Top Left
+  // --- BOTTOM ROW OF LOGO ---
   {
-    id: 1,
-    image: PlaceHolderImages[0].imageUrl,
-    start: { x: CX, y: CY, w: 0, rotation: 0 }, // Starts hidden in center
-    end: { x: CX - 350, y: CY - 200, w: 180, rotation: 15 },
+    id: 1, // Bottom Left
+    image: '/images/cube1.png', // CHANGED to .png
+    // Start: Rotate Y 180 (Math.PI) to show the solid beige back face
+    start: { x: 841 + 18, y: 480 + 17.5, w: 36, rotation: 0, rotationZ: 0, rotationY: Math.PI },
+    end: { x: DW/2 - 350, y: DH/2 - 200, w: 180, rotation: 15 },
   },
-  // 2. Top Right
   {
-    id: 2,
-    image: PlaceHolderImages[1].imageUrl,
-    start: { x: CX, y: CY, w: 0, rotation: 0 },
-    end: { x: CX + 350, y: CY - 200, w: 180, rotation: -15 },
+    id: 2, // Bottom Center
+    image: '/images/cube2.png', // CHANGED to .png
+    start: { x: 900 + 18, y: 480 + 17.5, w: 36, rotation: 0, rotationZ: 0, rotationY: Math.PI },
+    end: { x: DW/2 + 350, y: DH/2 - 200, w: 180, rotation: -15 },
   },
-  // 3. Middle Left (Far left)
   {
-    id: 3,
-    image: PlaceHolderImages[2].imageUrl,
-    start: { x: CX, y: CY, w: 0, rotation: 0 },
-    end: { x: CX - 480, y: CY + 50, w: 180, rotation: -10 },
+    id: 3, // Bottom Right
+    image: '/images/cube3.png', // CHANGED to .png
+    start: { x: 959 + 18, y: 480 + 17.5, w: 36, rotation: 0, rotationZ: 0, rotationY: Math.PI },
+    end: { x: DW/2 - 480, y: DH/2 + 50, w: 180, rotation: -10 },
   },
-  // 4. Middle Right (Far right)
+
+  // --- TOP ROW OF LOGO ---
   {
-    id: 4,
-    image: PlaceHolderImages[3].imageUrl,
-    start: { x: CX, y: CY, w: 0, rotation: 0 },
-    end: { x: CX + 480, y: CY + 50, w: 180, rotation: 10 },
+    id: 4, // Top Left (Angled)
+    image: '/images/cube4.png', // CHANGED to .png
+    start: { x: 864, y: 441, w: 36, rotation: 0, rotationZ: 45, rotationY: Math.PI },
+    end: { x: DW/2 + 480, y: DH/2 + 50, w: 180, rotation: 10 },
   },
-  // 5. Bottom Left
   {
-    id: 5,
-    image: PlaceHolderImages[4].imageUrl,
-    start: { x: CX, y: CY, w: 0, rotation: 0 },
-    end: { x: CX - 350, y: CY + 300, w: 180, rotation: 25 },
+    id: 5, // Top Center (Keystone)
+    image: '/images/cube5.png', // CHANGED to .png
+    start: { x: 900 + 18, y: 419 + 17.5, w: 36, rotation: 0, rotationZ: 0, rotationY: Math.PI },
+    end: { x: DW/2 - 350, y: DH/2 + 300, w: 180, rotation: 25 },
   },
-  // 6. Bottom Right
   {
-    id: 6,
-    image: PlaceHolderImages[5].imageUrl,
-    start: { x: CX, y: CY, w: 0, rotation: 0 },
-    end: { x: CX + 350, y: CY + 300, w: 180, rotation: -25 },
+    id: 6, // Top Right (Angled)
+    image: '/images/cube6.png', // CHANGED to .png
+    start: { x: 954, y: 441, w: 36, rotation: 0, rotationZ: -45, rotationY: Math.PI },
+    end: { x: DW/2 + 350, y: DH/2 + 300, w: 180, rotation: -25 },
   },
 ];

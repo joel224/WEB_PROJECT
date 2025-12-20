@@ -4,53 +4,55 @@ import { useRef } from 'react';
 import { useGSAP } from '@gsap/react';
 import type { Mesh } from 'three';
 import Scene from '@/components/Scene';
-import FigmaLogo from '@/components/FigmaLogo';
 
 export default function Home() {
   const cubeRefs = useRef<(Mesh | null)[]>([]);
   const { contextSafe } = useGSAP();
 
   return (
-    <main className="relative w-full min-h-screen bg-background text-beige overflow-x-hidden selection:bg-beige selection:text-background">
+    <main className="relative w-full bg-[#2B1C13] text-[#FFE9D9] overflow-x-hidden">
       
-      {/* 1. 3D SCENE (Fixed Background) */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
+      {/* 1. 3D Scene Background (Always Fixed) */}
+      <div className="fixed inset-0 z-50 pointer-events-none">
         <Scene cubeRefs={cubeRefs} contextSafe={contextSafe} />
       </div>
 
-      {/* 2. SCROLL CONTENT (Foreground) */}
-      <div className="scroller relative z-10 w-full">
+      {/* 2. Scroll Trigger Container */}
+      <div className="scroller relative w-full">
         
-        {/* HERO SECTION */}
-        <section className="h-screen w-full flex flex-col items-center pt-24 md:pt-32 relative">
+        {/* PAGE 1: HERO (Logo State) */}
+        <section className="h-screen w-full flex flex-col items-center pt-[15vh] sticky top-0 z-10">
           
-          {/* A. The Figma Logo */}
-          <div className="mb-12 scale-75 md:scale-100 title-overlay">
-            <FigmaLogo />
+          {/* Logo Spacer: The 3D cubes will sit exactly here */}
+          <div className="w-[154px] h-[96px] mb-12"></div>
+
+          {/* Headline Text - Will Blur Out */}
+          <div className="hero-text text-center transition-all will-change-transform">
+             <h1 className="font-serif text-[40px] md:text-[48px] leading-[1.1] max-w-[900px]">
+               The First Media Company crafted For the<br />
+               Digital First generation
+             </h1>
           </div>
-
-          {/* B. The Headline Text */}
-          {/* Matches: Times New Normal, 48px, #FFE9D9 */}
-          <h1 className="title-overlay font-serif text-3xl md:text-[48px] leading-[100%] text-center max-w-[800px] px-4">
-            The First Media Company crafted For the<br />
-            Digital First generation
-          </h1>
-
-          {/* C. Center Text (Hidden initially if needed, or static) */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-             {/* This space is reserved for the 'Ring of Cubes' to form around */}
-             <div className="opacity-0 animate-fadeIn delay-1000">
-                <p className="text-xs font-bold tracking-[0.2em] uppercase mb-2">
-                   Where innovation meets precision
-                </p>
-             </div>
-          </div>
-
         </section>
 
-        {/* SPACER (To allow scrolling animations) */}
-        <section className="h-[150vh] w-full" />
+        {/* PAGE 2: RING (End State) */}
+        <section className="h-screen w-full flex items-center justify-center relative z-20">
+           
+           {/* Center Text - Will Blur In */}
+           <div className="center-text opacity-0 blur-sm text-center w-[300px]">
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-2 text-[#FFE9D9]">
+                 Where innovation meets precision
+              </p>
+              <p className="text-[10px] text-[#FFE9D9]/80 leading-relaxed">
+                 Symbiosis - interlacing intellect, creative<br/> 
+                 chemistry, and technical expertise.
+              </p>
+           </div>
         
+        </section>
+        
+        {/* Extra space for scrolling */}
+        <div className="h-[50vh]"></div>
       </div>
     </main>
   );

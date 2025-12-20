@@ -1,44 +1,51 @@
 export default function FigmaLogo() {
-    // Common style for all rectangles
-    const rectStyle = "absolute w-[36px] h-[35px] bg-beige";
+    // Shared box styles
+    const rectStyle = "absolute w-[36px] h-[35px] bg-[#FFE9D9]";
   
+    // MATH EXPLANATION:
+    // Container Center: 77px
+    // Box Width: 36px (Half: 18px)
+    // Top Center Box Start: 77 - 18 = 59px
+    
+    // To make the sides "stick" like the right one:
+    // Right Box Left: 95px (Gap of 0px from center box)
+    // Left Box Left:  23px (Calculated to match 95px symmetrically)
+    
     return (
-      // Container size based on Group 1: 154px x 96px
       <div className="relative w-[154px] h-[96px]">
         
-        {/* --- Bottom Row --- */}
-        
-        {/* Rectangle 2 (Left) */}
+        {/* --- BOTTOM ROW (Fixed Base) --- */}
+        {/* Perfectly spaced with 23px gaps */}
         <div className={rectStyle} style={{ left: '0px', top: '61px' }} />
-        
-        {/* Rectangle 7 (Middle) */}
         <div className={rectStyle} style={{ left: '59px', top: '61px' }} />
-        
-        {/* Rectangle 6 (Right) */}
         <div className={rectStyle} style={{ left: '118px', top: '61px' }} />
   
-        {/* --- Top Arc --- */}
+        {/* --- TOP ROW (The Arch) --- */}
   
-        {/* Rectangle 3 (Left Angled) */}
+        {/* 1. Left Arch Box */}
+        {/* Fixed: Moved from 9px to 23px to match the right side */}
         <div 
           className={rectStyle} 
           style={{ 
-            left: '9px', 
+            left: '23px', 
             top: '11px', 
-            transform: 'rotate(42.64deg)' 
+            transform: 'rotate(45deg)', // Standardized angle
+            transformOrigin: 'center center'
           }} 
         />
   
-        {/* Rectangle 4 (Top Center) */}
-        <div className={rectStyle} style={{ left: '59px', top: '0px' }} />
+        {/* 2. Top Center Box (Keystone) */}
+        <div className={rectStyle} style={{ left: '59px', top: '0px', zIndex: 10 }} />
   
-        {/* Rectangle 5 (Right Angled) */}
+        {/* 3. Right Arch Box */}
+        {/* This was the "good" one, we kept it at 95px */}
         <div 
           className={rectStyle} 
           style={{ 
             left: '95px', 
             top: '11px', 
-            transform: 'rotate(47.43deg)' 
+            transform: 'rotate(-45deg)', // Standardized angle
+            transformOrigin: 'center center'
           }} 
         />
       </div>

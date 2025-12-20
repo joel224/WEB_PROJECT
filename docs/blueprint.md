@@ -1,6 +1,6 @@
 # **App Name**: Animated Portfolio Intro using framer , Three.js & gsap 
 
-
+your job is to fix errors while keeping the code as it is ,with minior chnages 
 
 
 ---
