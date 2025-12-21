@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Scene from '@/components/Scene';
 import FigmaLogo from '@/components/FigmaLogo';
 import RevealText from '@/components/RevealText'; 
-import KineticSection from '@/components/KineticSection';
+import Hero from '@/components/KineticSection';
 import Footer from '@/components/Footer';
 import Experience from '@/components/Experience';
 import FloatingButton from '@/components/FloatingButton';
@@ -97,14 +97,14 @@ and inspire growth.
                 </section>
 
                 {/* PAGE 3: KINETIC VIDEO */}
-                <KineticSection />
+                <Hero />
                 <Experience />
                 {/* FOOTER */}
                 <Footer />
 
             </motion.div>
 
-            <FloatingButton href="/contact" />
+            <FloatingButton href="/game" />
           </>
         )}
       </AnimatePresence>
