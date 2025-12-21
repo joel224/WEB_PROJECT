@@ -9,6 +9,7 @@ import RevealText from '@/components/RevealText';
 import KineticSection from '@/components/KineticSection';
 import Footer from '@/components/Footer';
 import Experience from '@/components/Experience';
+import FloatingButton from '@/components/FloatingButton';
 
 export default function Home() {
   const cubeRefs = useRef<(Mesh | null)[]>([]);
@@ -102,6 +103,8 @@ and inspire growth.
                 <Footer />
 
             </motion.div>
+
+            <FloatingButton href="/contact" />
           </>
         )}
       </AnimatePresence>
