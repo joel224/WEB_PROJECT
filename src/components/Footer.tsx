@@ -39,7 +39,7 @@ const Footer = () => {
         className="font-serif text-3xl md:text-4xl font-bold text-[#FFE9D9] mb-4"
         variants={itemVariants}
       >
-        Let's Create Together
+        Let's Create Together!
       </motion.h3>
       <motion.p
         className="max-w-xl mx-auto mb-8 font-sans"
