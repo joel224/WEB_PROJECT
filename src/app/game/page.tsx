@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Physics, useBox, usePlane } from '@react-three/cannon';
-import { Vector3 } from 'three';
+import { Vector3, Euler } from 'three';
 
 // --- 1. CONTROLS HOOK ---
 function usePlayerControls() {
@@ -106,7 +106,7 @@ function Car() {
     const turnStrength = 60;
     
     const forwardVector = new Vector3(0, 0, -1);
-    forwardVector.applyEuler(new THREE.Euler(0, rotation.current[1], 0));
+    forwardVector.applyEuler(new Euler(0, rotation.current[1], 0));
     
     if (forward && currentSpeed < maxSpeed) {
       api.applyImpulse(
