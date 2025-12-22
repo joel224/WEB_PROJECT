@@ -1,14 +1,48 @@
 'use client';
 
-import React, { useEffect, useRef, useState, Suspense } from 'react';
+import React, { useEffect, useRef, useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Physics, RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
-import { Text3D, Center, Loader, OrbitControls } from '@react-three/drei';
+import { Text3D, Center, Loader, OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
-// --- 1. LETTERS ---
+// --- 1. REUSABLE WHEEL ---
+function Wheel({ position, isFront, steerAngle, spinAngle, side }: { position: [number, number, number], isFront: boolean, steerAngle: number, spinAngle: number, side: 'left' | 'right' }) {
+  const wheelGroupRef = useRef<THREE.Group>(null);
+  const tireMeshRef = useRef<THREE.Group>(null);
+  
+  useFrame(() => {
+      // Steer (Pivoting around Y)
+      if (wheelGroupRef.current && isFront) {
+          wheelGroupRef.current.rotation.y = steerAngle;
+      }
+      // Spin (Rotating around X)
+      if (tireMeshRef.current) {
+          tireMeshRef.current.rotation.x = spinAngle;
+      }
+  });
+
+  const hubOffset = side === 'left' ? -0.08 : 0.08;
+
+  return (
+    <group ref={wheelGroupRef} position={position}>
+        <group ref={tireMeshRef}>
+            <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
+                <cylinderGeometry args={[0.35, 0.35, 0.25, 32]} />
+                <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
+            </mesh>
+            <mesh rotation={[0, 0, Math.PI / 2]} position={[hubOffset, 0, 0]} castShadow>
+                <cylinderGeometry args={[0.2, 0.2, 0.1, 16]} />
+                <meshStandardMaterial color="#cccccc" metalness={0.6} roughness={0.3} />
+            </mesh>
+        </group>
+    </group>
+  );
+}
+
+// --- 2. LETTERS ---
 function HittableLetter({ char, position }: { char: string, position: [number, number, number] }) {
   const fontUrl = 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/fonts/helvetiker_regular.typeface.json';
 
@@ -16,21 +50,21 @@ function HittableLetter({ char, position }: { char: string, position: [number, n
     <RigidBody 
       position={position} 
       colliders="cuboid" 
-      restitution={0.6} 
-      friction={0.5} // Higher friction so they don't slide forever
-      mass={1} // Heavier so they feel satisfying to hit
+      restitution={0.4} 
+      friction={0.7} 
+      mass={2}
     >
       <Center>
         <Text3D font={fontUrl} size={1.2} height={0.5} curveSegments={4} bevelEnabled bevelThickness={0.02} bevelSize={0.02}>
             {char}
-            <meshStandardMaterial color="#fbbf24" />
+            <meshStandardMaterial color="#fbbf24" roughness={0.1} metalness={0.2} />
         </Text3D>
       </Center>
     </RigidBody>
   );
 }
 
-// --- 2. CONTROLS ---
+// --- 3. CONTROLS ---
 function useControls() {
   const input = useRef({ forward: false, backward: false, left: false, right: false, brake: false });
   useEffect(() => {
@@ -52,26 +86,41 @@ function useControls() {
   return input;
 }
 
-// --- 3. CAR (FORCE BASED) ---
+// --- 4. THE CAR ---
 function Car({ orbitRef }: { orbitRef: any }) {
   const rigidBody = useRef<RapierRigidBody>(null);
   const controls = useControls();
-  const wheelsRef = useRef<THREE.Group>(null);
   
-  // Reusable vectors
-  const forward = new THREE.Vector3();
+  // FIX 1: Stable Material Instance (Solves "undefined reading set")
+  // We create the material ONCE. We don't use a Ref to try and catch it later.
+  const brakeMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#550000',
+    emissive: '#000000',
+    emissiveIntensity: 0,
+    toneMapped: false
+  }), []);
 
-  useFrame(() => {
+  // FIX 2: Stable Spotlight Targets (Solves "matrixWorld" null error)
+  // We create these objects ONCE and keep them forever.
+  const [lightTargetL] = useState(() => new THREE.Object3D());
+  const [lightTargetR] = useState(() => new THREE.Object3D());
+
+  // Animation states
+  const currentSteerAngle = useRef(0);
+  const wheelSpinAngle = useRef(0);
+
+  const forward = useMemo(() => new THREE.Vector3(), []);
+  const velVec = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame((state, delta) => {
     if (!rigidBody.current) return;
 
     const { forward: isFwd, backward: isBwd, left, right, brake } = controls.current;
-    
-    // --- A. DATA SYNC ---
-    const rot = rigidBody.current.rotation();
     const pos = rigidBody.current.translation();
+    const rot = rigidBody.current.rotation();
     const vel = rigidBody.current.linvel();
 
-    // --- B. RESPAWN ---
+    // --- PHYSICS ---
     if (pos.y < -10) {
         rigidBody.current.setTranslation({ x: 0, y: 2, z: 0 }, true);
         rigidBody.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
@@ -79,101 +128,141 @@ function Car({ orbitRef }: { orbitRef: any }) {
         rigidBody.current.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
     }
 
-    // --- C. STEERING ---
-    // We stick to direct angular velocity for steering because 
-    // force-based steering (Torque) is incredibly hard to control.
-    const turnSpeed = 3.5;
-    let turn = 0;
-    if (left) turn = turnSpeed;
-    if (right) turn = -turnSpeed;
-    rigidBody.current.setAngvel({ x: 0, y: turn, z: 0 }, true);
+    // Steer
+    const turnSpeed = 3.0;
+    let targetTurn = 0;
+    if (left) targetTurn = turnSpeed;
+    if (right) targetTurn = -turnSpeed;
+    rigidBody.current.setAngvel({ x: 0, y: targetTurn, z: 0 }, true);
 
-    // --- D. ENGINE FORCE ---
-    // Calculate Forward Direction
+    // Drive
     const quaternion = new THREE.Quaternion(rot.x, rot.y, rot.z, rot.w);
     forward.set(0, 0, 1).applyQuaternion(quaternion);
-
-    // Engine Power (Force)
-    // 50kg Car * 60 = 3000 Force for fast acceleration
-    const enginePower = 60; 
+    const enginePower = 70; 
     let impulseStrength = 0;
-
     if (isFwd) impulseStrength = -enginePower;
     else if (isBwd) impulseStrength = enginePower;
-
-    // Apply the Impulse (Instant Force for this frame)
-    // This pushes the car physically.
+    
     rigidBody.current.applyImpulse({ 
-        x: forward.x * impulseStrength, 
-        y: 0, // Don't push up/down
-        z: forward.z * impulseStrength 
+        x: forward.x * impulseStrength, y: 0, z: forward.z * impulseStrength 
     }, true);
 
-    // --- E. BRAKES / DRAG ---
-    // If we are pushing "Space", we increase drag massively to stop.
-    // Otherwise, standard drag (1.0) slows us down gradually.
-    const currentDrag = brake ? 5.0 : 1.0;
+    // Brake
+    const currentDrag = brake ? 6.0 : 1.0;
     rigidBody.current.setLinearDamping(currentDrag);
 
-    // --- F. CAMERA ---
+    // --- VISUALS ---
+
+    // 1. Camera
     if (orbitRef.current) {
         orbitRef.current.target.set(pos.x, pos.y, pos.z);
         orbitRef.current.update();
     }
 
-    // --- G. VISUALS ---
-    if (wheelsRef.current) {
-        const targetRot = left ? 0.6 : (right ? -0.6 : 0);
-        wheelsRef.current.rotation.y += (targetRot - wheelsRef.current.rotation.y) * 0.1;
-    }
+    // 2. Steer Visuals
+    const maxSteerVis = 0.5; 
+    const targetSteerVis = left ? maxSteerVis : (right ? -maxSteerVis : 0);
+    currentSteerAngle.current = THREE.MathUtils.lerp(currentSteerAngle.current, targetSteerVis, delta * 10);
+
+    // 3. Wheel Spin
+    velVec.set(vel.x, vel.y, vel.z);
+    const forwardSpeed = velVec.dot(forward); 
+    wheelSpinAngle.current -= forwardSpeed * delta * 2.5; 
+
+    // 4. Brake Lights (Directly manipulating the stable material instance)
+    const isOn = brake;
+    brakeMaterial.color.set(isOn ? '#ff0000' : '#550000');
+    brakeMaterial.emissive.set(isOn ? '#ff0000' : '#000000');
+    brakeMaterial.emissiveIntensity = isOn ? 2 : 0;
+    
+    // 5. Update Headlights Position relative to car
+    // We manually update the target positions to stay in front of the car
+    // NOTE: In R3F, parenting <primitive> usually handles position, 
+    // but manually setting local position ensures stability.
+    lightTargetL.position.set(-0.6, -0.5, -10);
+    lightTargetR.position.set(0.6, -0.5, -10);
+    lightTargetL.updateMatrixWorld();
+    lightTargetR.updateMatrixWorld();
   });
 
   return (
     <RigidBody 
-        ref={rigidBody} 
-        position={[0, 2, 0]} 
-        mass={50} // Heavy car feels grounded
-        colliders="cuboid"
-        friction={1.5} // High tire friction
-        linearDamping={1.0} // Air resistance (Important for Force-based!)
-        angularDamping={0.5}
-        enabledRotations={[false, true, false]} // Lock Tipping
-        ccd={true} // Anti-Tunneling
+        ref={rigidBody} position={[0, 2, 0]} mass={50} colliders="cuboid" friction={1.5} linearDamping={1.0} angularDamping={0.5} enabledRotations={[false, true, false]} ccd={true}
     >
-      <mesh castShadow><boxGeometry args={[1.2, 0.5, 2.4]} /><meshStandardMaterial color="#ef4444" /></mesh>
-      <mesh position={[0, 0.4, -0.3]} castShadow><boxGeometry args={[0.9, 0.45, 1.2]} /><meshStandardMaterial color="#111" /></mesh>
-      <group ref={wheelsRef}>
-         <mesh position={[-0.7, -0.2, -0.8]} rotation={[0, 0, Math.PI/2]}><cylinderGeometry args={[0.35, 0.35, 0.25, 24]} /><meshStandardMaterial color="#111" /></mesh>
-         <mesh position={[0.7, -0.2, -0.8]} rotation={[0, 0, Math.PI/2]}><cylinderGeometry args={[0.35, 0.35, 0.25, 24]} /><meshStandardMaterial color="#111" /></mesh>
+      {/* HOOD */}
+      <mesh castShadow position={[0, 0, -0.5]}>
+          <boxGeometry args={[1.2, 0.5, 1.5]} />
+          <meshStandardMaterial color="#ef4444" envMapIntensity={1.5} roughness={0.2} metalness={0.5} />
+      </mesh>
+      
+      {/* CABIN */}
+      <mesh position={[0, 0.4, 0.5]} castShadow>
+        <boxGeometry args={[1.0, 0.45, 1.0]} />
+        <meshStandardMaterial color="#111" envMapIntensity={2} roughness={0.1} metalness={0.8} />
+      </mesh>
+
+      {/* HEADLIGHTS */}
+      <group position={[0, 0.1, -1.25]}>
+          {/* Left */}
+          <mesh position={[-0.5, 0, 0]}>
+              <sphereGeometry args={[0.08, 16, 8]} />
+              <meshStandardMaterial color="white" emissive="white" emissiveIntensity={2} toneMapped={false} />
+              {/* FIX: Add the stable target object to the scene graph here */}
+              <primitive object={lightTargetL} />
+              <spotLight castShadow intensity={50} angle={0.6} penumbra={0.2} distance={30} target={lightTargetL} />
+          </mesh>
+          {/* Right */}
+          <mesh position={[0.5, 0, 0]}>
+              <sphereGeometry args={[0.08, 16, 8]} />
+              <meshStandardMaterial color="white" emissive="white" emissiveIntensity={2} toneMapped={false} />
+              <primitive object={lightTargetR} />
+              <spotLight castShadow intensity={50} angle={0.6} penumbra={0.2} distance={30} target={lightTargetR} />
+          </mesh>
       </group>
-      <mesh position={[-0.7, -0.2, 0.9]} rotation={[0, 0, Math.PI/2]}><cylinderGeometry args={[0.35, 0.35, 0.25, 24]} /><meshStandardMaterial color="#111" /></mesh>
-      <mesh position={[0.7, -0.2, 0.9]} rotation={[0, 0, Math.PI/2]}><cylinderGeometry args={[0.35, 0.35, 0.25, 24]} /><meshStandardMaterial color="#111" /></mesh>
+
+      {/* BRAKE LIGHTS */}
+      <group position={[0, 0.1, 1.0]}>
+          {/* Left Tail - Uses the Shared Material Instance */}
+          <mesh position={[-0.45, 0, 0]} material={brakeMaterial}>
+              <boxGeometry args={[0.25, 0.15, 0.05]} />
+          </mesh>
+           {/* Right Tail - Uses the Same Material Instance */}
+          <mesh position={[0.45, 0, 0]} material={brakeMaterial}>
+              <boxGeometry args={[0.25, 0.15, 0.05]} />
+          </mesh>
+      </group>
+
+      {/* WHEELS */}
+      <Wheel position={[-0.7, -0.2, -0.8]} isFront={true} side="left" steerAngle={currentSteerAngle.current} spinAngle={wheelSpinAngle.current} />
+      <Wheel position={[0.7, -0.2, -0.8]} isFront={true} side="right" steerAngle={currentSteerAngle.current} spinAngle={wheelSpinAngle.current} />
+      <Wheel position={[-0.7, -0.2, 1.0]} isFront={false} side="left" steerAngle={0} spinAngle={wheelSpinAngle.current} />
+      <Wheel position={[0.7, -0.2, 1.0]} isFront={false} side="right" steerAngle={0} spinAngle={wheelSpinAngle.current} />
     </RigidBody>
   );
 }
 
-// --- 4. GROUND ---
+// --- 5. GROUND ---
 function Ground() {
   return (
     <RigidBody type="fixed" position={[0, -0.1, 0]} friction={0.5}>
         <CuboidCollider args={[250, 0.1, 250]} />
-        <gridHelper position={[0, 0.15, 0]} args={[500, 50, 0x555555, 0xcccccc]} />
+        <gridHelper position={[0, 0.15, 0]} args={[500, 50, 0x333333, 0x555555]} />
         <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
             <planeGeometry args={[500, 500]} />
-            <meshStandardMaterial color="#e5e5e5" />
+            <meshStandardMaterial color="#333333" roughness={0.8} />
         </mesh>
     </RigidBody>
   );
 }
 
 // =========================================
-// 5. MAIN PAGE
+// 6. MAIN PAGE
 // =========================================
 export default function GamePage() {
   const orbitRef = useRef<any>(null);
 
   return (
-    <main className="w-full h-screen bg-gray-200 relative overflow-hidden">
+    <main className="w-full h-screen bg-black relative overflow-hidden">
       <Loader />
       
       <div className="absolute top-8 left-8 z-50">
@@ -188,20 +277,21 @@ export default function GamePage() {
          <p>Mouse Drag to Rotate Camera</p>
       </div>
 
-      <Canvas shadows camera={{ position: [0, 5, 10], fov: 50 }}>
-        <color attach="background" args={['#e5e5e5']} />
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[50, 100, 50]} intensity={1.5} castShadow />
-        <OrbitControls ref={orbitRef} maxPolarAngle={Math.PI / 2.1} />
+      <Canvas shadows camera={{ position: [0, 5, 12], fov: 50 }}>
+        <color attach="background" args={['#111']} />
+        <ambientLight intensity={0.2} />
+        <directionalLight position={[50, 100, 50]} intensity={0.5} castShadow color={"#aaaaff"} />
+        <Environment preset="night" />
 
-        {/* Physics Environment */}
+        <OrbitControls ref={orbitRef} maxPolarAngle={Math.PI / 2.1} minDistance={5} maxDistance={30} />
+
         <Physics gravity={[0, -20, 0]}>
           <Car orbitRef={orbitRef} />
           <Suspense fallback={null}>
-            <HittableLetter char="J" position={[-3, 0.5, -8]} />
-            <HittableLetter char="O" position={[-1, 0.5, -8]} />
-            <HittableLetter char="E" position={[1, 0.5, -8]} />
-            <HittableLetter char="L" position={[3, 0.5, -8]} />
+            <HittableLetter char="J" position={[-3, 0.5, -10]} />
+            <HittableLetter char="O" position={[-1, 0.5, -10]} />
+            <HittableLetter char="E" position={[1, 0.5, -10]} />
+            <HittableLetter char="L" position={[3, 0.5, -10]} />
           </Suspense>
           <Ground />
         </Physics>
