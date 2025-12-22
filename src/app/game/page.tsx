@@ -1,60 +1,32 @@
 'use client';
 
-import React, { useEffect, useRef, useMemo, useState, Suspense } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Physics, useBox } from '@react-three/cannon';
+import { Physics, RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
 import { Text3D, Center, Loader, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
-// --- 1. HITTABLE LETTER (Inside a Thick Invisible Box) ---
+// --- 1. LETTERS ---
 function HittableLetter({ char, position }: { char: string, position: [number, number, number] }) {
-  const [ref] = useBox(() => ({
-    mass: 5, // Enough mass to feel satisfying to hit
-    position,
-    // HITBOX SIZE: 1.5 wide, 2 high, AND 3 METERS THICK (Z)
-    // Impossible to tunnel through a 3-meter block.
-    args: [1.5, 2, 3], 
-    material: { friction: 0.3, restitution: 0.2 },
-    allowSleep: false
-  }));
-
-  const visualRef = useRef<THREE.Group>(null);
   const fontUrl = 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/fonts/helvetiker_regular.typeface.json';
 
-  useFrame(() => {
-    if (!visualRef.current || !ref.current) return;
-    if (!isNaN(ref.current.position.x)) {
-      visualRef.current.position.copy(ref.current.position);
-      visualRef.current.quaternion.copy(ref.current.quaternion);
-    }
-  });
-
   return (
-    <>
-      {/* PHYSICS BODY (Invisible Thick Box) */}
-      <mesh ref={ref as any} visible={false}>
-        <boxGeometry args={[1.5, 2, 3]} />
-      </mesh>
-
-      {/* VISUALS */}
-      <group ref={visualRef}>
-         {/* Optional: Faint debug box to see the hit area. Set opacity to 0 to hide completely. */}
-         <mesh>
-            <boxGeometry args={[1.5, 2, 3]} />
-            <meshStandardMaterial color="white" transparent opacity={0} depthWrite={false} />
-         </mesh>
-
-         {/* The Text is centered inside the thick box */}
-         <Center>
-            <Text3D font={fontUrl} size={1.2} height={0.5} curveSegments={4} bevelEnabled bevelThickness={0.02} bevelSize={0.02}>
-                {char}
-                <meshStandardMaterial color="#fbbf24" />
-            </Text3D>
-        </Center>
-      </group>
-    </>
+    <RigidBody 
+      position={position} 
+      colliders="cuboid" 
+      restitution={0.6} 
+      friction={0.5} // Higher friction so they don't slide forever
+      mass={1} // Heavier so they feel satisfying to hit
+    >
+      <Center>
+        <Text3D font={fontUrl} size={1.2} height={0.5} curveSegments={4} bevelEnabled bevelThickness={0.02} bevelSize={0.02}>
+            {char}
+            <meshStandardMaterial color="#fbbf24" />
+        </Text3D>
+      </Center>
+    </RigidBody>
   );
 }
 
@@ -80,94 +52,76 @@ function useControls() {
   return input;
 }
 
-// --- 3. CAR (PROPORTIONAL SPEED CONTROL) ---
+// --- 3. CAR (FORCE BASED) ---
 function Car({ orbitRef }: { orbitRef: any }) {
+  const rigidBody = useRef<RapierRigidBody>(null);
   const controls = useControls();
-  const frames = useRef(0); 
-
-  const [ref, api] = useBox(() => ({
-    mass: 50, 
-    position: [0, 2, 0], 
-    args: [1.2, 0.5, 2.2], 
-    // DAMPING 0.1: This allows the "Gliding" stop you asked for.
-    linearDamping: 0.1, 
-    angularDamping: 0.5, 
-    angularFactor: [0, 1, 0], 
-    allowSleep: false,
-  }));
-  
-  // Track current velocity
-  const velocity = useRef([0, 0, 0]);
-  const position = useRef([0, 0, 0]);
-  const quaternion = useRef([0, 0, 0, 1]); 
-
-  useEffect(() => {
-    const unsubV = api.velocity.subscribe((v) => (velocity.current = v));
-    const unsubP = api.position.subscribe((p) => (position.current = p));
-    const unsubQ = api.quaternion.subscribe((q) => (quaternion.current = q));
-    return () => { unsubV(); unsubP(); unsubQ(); };
-  }, [api]);
-
   const wheelsRef = useRef<THREE.Group>(null);
-  const vec_current_vel = useMemo(() => new THREE.Vector3(), []); 
-  const quat = useMemo(() => new THREE.Quaternion(), []); 
+  
+  // Reusable vectors
+  const forward = new THREE.Vector3();
 
-  useFrame((state) => {
-    if (frames.current < 20) { frames.current++; return; } 
-    if (isNaN(position.current[0])) { api.position.set(0, 2, 0); api.velocity.set(0,0,0); return; }
+  useFrame(() => {
+    if (!rigidBody.current) return;
 
-    // 1. INPUTS
-    const { forward, backward, left, right } = controls.current;
-
-    // 2. STEERING (Direct control remains best for steering)
-    const turnSpeed = 3.5;
-    let steer = 0;
-    if (left) steer = turnSpeed;
-    if (right) steer = -turnSpeed;
-    api.angularVelocity.set(0, steer, 0);
-
-    // 3. DRIVE LOGIC (The "Smart Force" Method)
-    // We calculate how fast we WANT to go vs how fast we ARE going.
+    const { forward: isFwd, backward: isBwd, left, right, brake } = controls.current;
     
-    // Get forward direction
-    quat.set(quaternion.current[0], quaternion.current[1], quaternion.current[2], quaternion.current[3]);
-    quat.normalize();
-    const forwardDir = new THREE.Vector3(0, 0, 1).applyQuaternion(quat);
+    // --- A. DATA SYNC ---
+    const rot = rigidBody.current.rotation();
+    const pos = rigidBody.current.translation();
+    const vel = rigidBody.current.linvel();
 
-    // Get current speed along the forward direction
-    vec_current_vel.set(velocity.current[0], velocity.current[1], velocity.current[2]);
-    const currentForwardSpeed = vec_current_vel.dot(forwardDir);
+    // --- B. RESPAWN ---
+    if (pos.y < -10) {
+        rigidBody.current.setTranslation({ x: 0, y: 2, z: 0 }, true);
+        rigidBody.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        rigidBody.current.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+    }
 
-    // Define Target Speed
-    const maxSpeed = 30;
-    let targetSpeed = 0;
-    if (forward) targetSpeed = -maxSpeed; // -Z is forward
-    else if (backward) targetSpeed = maxSpeed;
+    // --- C. STEERING ---
+    // We stick to direct angular velocity for steering because 
+    // force-based steering (Torque) is incredibly hard to control.
+    const turnSpeed = 3.5;
+    let turn = 0;
+    if (left) turn = turnSpeed;
+    if (right) turn = -turnSpeed;
+    rigidBody.current.setAngvel({ x: 0, y: turn, z: 0 }, true);
 
-    // Calculate needed push
-    // If we are at 0 and want 30, difference is 30.
-    // If we are at 30 and want 30, difference is 0.
-    const speedDiff = targetSpeed - currentForwardSpeed;
+    // --- D. ENGINE FORCE ---
+    // Calculate Forward Direction
+    const quaternion = new THREE.Quaternion(rot.x, rot.y, rot.z, rot.w);
+    forward.set(0, 0, 1).applyQuaternion(quaternion);
 
-    // Apply Force proportional to difference
-    // Multiplier (200) determines acceleration "snappiness"
-    if (forward || backward) {
-        // Accelerating
-        api.applyForce(
-            [forwardDir.x * speedDiff * 200, 0, forwardDir.z * speedDiff * 200], 
-            [0, 0, 0]
-        );
-    } 
-    // Note: We do NOT apply force when keys are up. 
-    // We let 'linearDamping: 0.1' handle the gliding stop.
+    // Engine Power (Force)
+    // 50kg Car * 60 = 3000 Force for fast acceleration
+    const enginePower = 60; 
+    let impulseStrength = 0;
 
-    // 4. CAMERA
+    if (isFwd) impulseStrength = -enginePower;
+    else if (isBwd) impulseStrength = enginePower;
+
+    // Apply the Impulse (Instant Force for this frame)
+    // This pushes the car physically.
+    rigidBody.current.applyImpulse({ 
+        x: forward.x * impulseStrength, 
+        y: 0, // Don't push up/down
+        z: forward.z * impulseStrength 
+    }, true);
+
+    // --- E. BRAKES / DRAG ---
+    // If we are pushing "Space", we increase drag massively to stop.
+    // Otherwise, standard drag (1.0) slows us down gradually.
+    const currentDrag = brake ? 5.0 : 1.0;
+    rigidBody.current.setLinearDamping(currentDrag);
+
+    // --- F. CAMERA ---
     if (orbitRef.current) {
-        orbitRef.current.target.set(position.current[0], position.current[1], position.current[2]);
+        orbitRef.current.target.set(pos.x, pos.y, pos.z);
         orbitRef.current.update();
     }
 
-    // 5. VISUALS
+    // --- G. VISUALS ---
     if (wheelsRef.current) {
         const targetRot = left ? 0.6 : (right ? -0.6 : 0);
         wheelsRef.current.rotation.y += (targetRot - wheelsRef.current.rotation.y) * 0.1;
@@ -175,7 +129,17 @@ function Car({ orbitRef }: { orbitRef: any }) {
   });
 
   return (
-    <group ref={ref as any}>
+    <RigidBody 
+        ref={rigidBody} 
+        position={[0, 2, 0]} 
+        mass={50} // Heavy car feels grounded
+        colliders="cuboid"
+        friction={1.5} // High tire friction
+        linearDamping={1.0} // Air resistance (Important for Force-based!)
+        angularDamping={0.5}
+        enabledRotations={[false, true, false]} // Lock Tipping
+        ccd={true} // Anti-Tunneling
+    >
       <mesh castShadow><boxGeometry args={[1.2, 0.5, 2.4]} /><meshStandardMaterial color="#ef4444" /></mesh>
       <mesh position={[0, 0.4, -0.3]} castShadow><boxGeometry args={[0.9, 0.45, 1.2]} /><meshStandardMaterial color="#111" /></mesh>
       <group ref={wheelsRef}>
@@ -184,23 +148,21 @@ function Car({ orbitRef }: { orbitRef: any }) {
       </group>
       <mesh position={[-0.7, -0.2, 0.9]} rotation={[0, 0, Math.PI/2]}><cylinderGeometry args={[0.35, 0.35, 0.25, 24]} /><meshStandardMaterial color="#111" /></mesh>
       <mesh position={[0.7, -0.2, 0.9]} rotation={[0, 0, Math.PI/2]}><cylinderGeometry args={[0.35, 0.35, 0.25, 24]} /><meshStandardMaterial color="#111" /></mesh>
-    </group>
+    </RigidBody>
   );
 }
 
 // --- 4. GROUND ---
 function Ground() {
-  const [ref] = useBox(() => ({ 
-    type: 'Static', position: [0, -5, 0], args: [500, 10, 500], material: { friction: 0.1, restitution: 0 } 
-  }));
   return (
-    <group>
-        <mesh ref={ref as any} visible={false}><boxGeometry args={[500, 10, 500]} /></mesh>
-        <gridHelper position={[0, 0.05, 0]} args={[500, 50, 0x555555, 0xcccccc]} />
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-            <planeGeometry args={[500, 500]} /><meshStandardMaterial color="#e5e5e5" />
+    <RigidBody type="fixed" position={[0, -0.1, 0]} friction={0.5}>
+        <CuboidCollider args={[250, 0.1, 250]} />
+        <gridHelper position={[0, 0.15, 0]} args={[500, 50, 0x555555, 0xcccccc]} />
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[500, 500]} />
+            <meshStandardMaterial color="#e5e5e5" />
         </mesh>
-    </group>
+    </RigidBody>
   );
 }
 
@@ -222,6 +184,7 @@ export default function GamePage() {
 
       <div className="absolute bottom-8 right-8 z-50 bg-black/80 text-white p-4 rounded-xl font-mono text-xs pointer-events-none">
          <p>WASD to Drive</p>
+         <p>SPACE to Brake</p>
          <p>Mouse Drag to Rotate Camera</p>
       </div>
 
@@ -231,15 +194,14 @@ export default function GamePage() {
         <directionalLight position={[50, 100, 50]} intensity={1.5} castShadow />
         <OrbitControls ref={orbitRef} maxPolarAngle={Math.PI / 2.1} />
 
-        {/* 1/120 Step: Precision Physics for Fast Movement */}
-        <Physics gravity={[0, -20, 0]} step={1/120}>
+        {/* Physics Environment */}
+        <Physics gravity={[0, -20, 0]}>
           <Car orbitRef={orbitRef} />
           <Suspense fallback={null}>
-            {/* Letters are now SUPER THICK (3m) */}
-            <HittableLetter char="J" position={[-3, 1, -10]} />
-            <HittableLetter char="O" position={[-1, 1, -10]} />
-            <HittableLetter char="E" position={[1, 1, -10]} />
-            <HittableLetter char="L" position={[3, 1, -10]} />
+            <HittableLetter char="J" position={[-3, 0.5, -8]} />
+            <HittableLetter char="O" position={[-1, 0.5, -8]} />
+            <HittableLetter char="E" position={[1, 0.5, -8]} />
+            <HittableLetter char="L" position={[3, 0.5, -8]} />
           </Suspense>
           <Ground />
         </Physics>
