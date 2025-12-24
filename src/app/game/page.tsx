@@ -291,7 +291,7 @@ export default function GamePage() {
             <input 
                 id="power"
                 type="range" 
-                min="10" 
+                min="5" 
                 max="200" 
                 value={enginePower} 
                 onChange={(e) => setEnginePower(Number(e.target.value))}
